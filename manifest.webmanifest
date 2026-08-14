@@ -1,0 +1,27 @@
+{
+  "name": "מסלול דינמי - ליפנו ודרום צ׳כיה",
+  "short_name": "מסלול ליפנו",
+  "description": "מסלול משפחתי דינמי לליפנו ודרום צ׳כיה עם תחזית מזג אוויר חיה",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F3EEE1",
+  "theme_color": "#123B49",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

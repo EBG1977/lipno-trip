@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>מסלול דינמי - ליפנו ודרום צ׳כיה</title>
+<meta name="description" content="מסלול משפחתי דינמי לליפנו ודרום צ׳כיה עם תחזית מזג אוויר חיה">
+<meta name="theme-color" content="#123B49">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700;900&family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F3EEE1;
+    --card: #FFFFFF;
+    --ink: #1C2B2A;
+    --ink-soft: #52625D;
+    --lake: #1E5F74;
+    --lake-deep: #123B49;
+    --pine: #34513F;
+    --sun: #D9973F;
+    --sun-soft: #F3DCB4;
+    --rain: #64798A;
+    --rain-soft: #DCE4E9;
+    --mixed: #B98E52;
+    --wind: #4E7FA8;
+    --storm: #9A4B45;
+    --line: #DCD3BC;
+    --alert: #B3492F;
+    --alert-soft: #F6DED6;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html, body{max-width:100%; overflow-x:hidden;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Heebo', sans-serif; line-height:1.55; padding-bottom:60px;
+  }
+  h1,h2,h3,.display{font-family:'Frank Ruhl Libre', serif;}
+  .wrap{max-width:960px;margin:0 auto;padding:0 18px;}
+  a{color:var(--lake-deep);}
+  button{font-family:'Heebo', sans-serif;}
+  :focus-visible{outline:3px solid #E0A458; outline-offset:2px; border-radius:4px;}
+
+  /* Safety net so no element can force horizontal scroll on narrow phones */
+  .daybody, .weatherbox, .note, .xcard, .whatnow, .schedule li span:last-child,
+  .wchip, .windowchip, .xdesc, .sub, h1, h2, h3 { overflow-wrap: break-word; word-break: break-word; }
+
+  .hero{
+    background: linear-gradient(180deg, var(--lake-deep) 0%, var(--lake) 62%, #2C7A8F 100%);
+    color:#F3EEE1; padding:34px 0 26px; border-bottom:6px solid var(--sun);
+    position:relative; overflow:hidden;
+  }
+  .hero::after{
+    content:""; position:absolute; inset:auto 0 0 0; height:70px;
+    background: repeating-linear-gradient(90deg, transparent 0 40px, rgba(243,238,225,.06) 40px 41px);
+  }
+  .hero .eyebrow{font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--sun-soft); font-weight:600; margin-bottom:10px;}
+  .hero h1{font-size:30px; margin:0 0 6px; font-weight:700;}
+  .hero .sub{font-size:15px; color:#D9E6E9; max-width:640px;}
+  .group-strip{margin-top:18px; display:flex; gap:8px; flex-wrap:wrap;}
+  .pill{background:rgba(243,238,225,.12); border:1px solid rgba(243,238,225,.28); border-radius:999px; padding:6px 13px; font-size:13px;}
+
+  .update-banner{
+    background:var(--sun); color:#3a2508; text-align:center; padding:10px; font-size:13.5px; font-weight:700;
+    display:none;
+  }
+  .update-banner button{
+    margin-inline-start:10px; background:#3a2508; color:#fff; border:none; padding:5px 12px; border-radius:999px; cursor:pointer; font-weight:700; font-size:12.5px;
+  }
+  .offline-banner{
+    background:var(--rain-soft); color:var(--ink); text-align:center; padding:8px; font-size:13px; display:none;
+  }
+
+  .alert{background:var(--alert-soft); border:1px solid #E3AE9C; border-right:5px solid var(--alert); border-radius:10px; padding:14px 18px; margin:22px 0; font-size:14.5px;}
+  .alert b{color:var(--alert);}
+  .alert.info{background:#E4EEF0; border-color:#B9D3D8; border-right-color:var(--lake);}
+  .alert.info b{color:var(--lake-deep);}
+  .alert.flight{background:#F6DED6; border-right-color:var(--storm); font-weight:600; display:none;}
+
+  .whatnow{
+    background:var(--card); border:2px solid var(--pine); border-radius:var(--radius);
+    padding:16px 18px; margin:22px 0; font-size:14.5px;
+  }
+  .whatnow h3{margin:0 0 8px; font-size:16px; color:var(--pine);}
+  .whatnow .row{display:flex; gap:10px; align-items:flex-start; margin-bottom:6px;}
+  .whatnow .tag{font-size:11px; font-weight:700; background:var(--pine); color:#fff; padding:3px 9px; border-radius:999px; flex-shrink:0; margin-top:2px;}
+  .whatnow .tag.next{background:var(--rain);}
+  .whatnow .muted{color:var(--ink-soft); font-size:13px;}
+
+  .ribbon-title{font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin:30px 0 10px; font-weight:600; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
+  .refresh-btn{
+    background:var(--card); border:1px solid var(--line); border-radius:999px; padding:5px 14px; font-size:12.5px; font-weight:700; cursor:pointer; color:var(--lake-deep);
+  }
+  .refresh-btn:disabled{opacity:.6; cursor:default;}
+  .ribbon{display:grid; grid-template-columns:repeat(6,1fr); gap:8px;}
+  @media(max-width:400px){.ribbon{grid-template-columns:repeat(3,1fr);}}
+  .rcard{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 4px; text-align:center; cursor:pointer; transition:.15s; width:100%; }
+  .rcard:hover{border-color:var(--lake);}
+  .rcard.active{border-color:var(--lake); box-shadow:0 0 0 2px var(--lake) inset;}
+  .rcard .d{font-size:11px; color:var(--ink-soft);}
+  .rcard .date{font-size:13.5px; font-weight:700; margin:2px 0 5px;}
+  .rcard .icon{font-size:20px;}
+  .rcard .temp{font-size:12px; margin-top:4px; color:var(--ink-soft);}
+  .rcard .conf{font-size:9.5px; margin-top:3px; color:var(--ink-soft); opacity:.8;}
+  .rcard.state-unknown{opacity:.55;}
+  .forecast-note{font-size:12px; color:var(--ink-soft); margin-top:8px;}
+
+  .daycard{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); margin-top:22px; overflow:hidden;}
+  .daycard.is-today{border-color:var(--sun); box-shadow:0 0 0 2px var(--sun) inset;}
+  .daytop{padding:20px 22px 14px; border-bottom:1px solid var(--line);}
+  .daytop h2{font-size:21px; margin:0 0 4px;}
+  .daytop .char{font-size:13px; color:var(--pine); font-weight:600;}
+  .weatherbox{
+    margin-top:12px; background:#F6F2E7; border-radius:10px; padding:10px 14px; font-size:13px;
+  }
+  .weatherbox .wrow{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:4px;}
+  .weatherbox .wchip{font-size:12px; color:var(--ink-soft);}
+  .weatherbox .rec{font-weight:600; margin-top:4px;}
+  .windowchips{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .windowchip{font-size:11px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 10px;}
+
+  .toggle-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;}
+  .toggle-row button{
+    border:1px solid var(--line); background:#fff; padding:7px 13px; border-radius:999px;
+    font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink-soft);
+  }
+  .toggle-row button.on{color:#fff; border-color:transparent;}
+  .toggle-row button.on.auto{background:var(--pine);}
+  .toggle-row button.on.clear{background:var(--sun); color:#3a2508;}
+  .toggle-row button.on.mixed{background:var(--mixed);}
+  .toggle-row button.on.rain{background:var(--rain);}
+  .toggle-row button.on.wind{background:var(--wind);}
+  .toggle-row button.on.storm{background:var(--storm);}
+  .manual-flag{font-size:11.5px; color:var(--alert); margin-top:6px; font-weight:600;}
+
+  .daybody{padding:18px 22px 22px;}
+  .schedule{list-style:none; margin:0 0 14px; padding:0;}
+  .schedule li{display:flex; gap:12px; padding:7px 0; border-bottom:1px dashed var(--line); font-size:14px;}
+  .schedule li:last-child{border-bottom:none;}
+  .schedule .time{min-width:100px; color:var(--lake); font-weight:700; font-size:13px; flex-shrink:0;}
+
+  .note{font-size:13px; background:#F6F2E7; border-right:3px solid var(--sun); padding:10px 14px; border-radius:6px; margin-top:10px; color:var(--ink-soft);}
+  .note.logistics{border-right-color:var(--lake); background:#EAF2F3;}
+  .book{display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; background:var(--pine); color:#fff; padding:5px 12px; border-radius:999px; margin-top:10px;}
+
+  .linkrow{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .linkbtn{
+    display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600;
+    border:1px solid var(--line); background:#fff; color:var(--lake-deep); padding:6px 12px; border-radius:999px; text-decoration:none;
+  }
+  .linkbtn:hover{border-color:var(--lake);}
+
+  .flight-panels{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;}
+  @media(max-width:600px){.flight-panels{grid-template-columns:1fr;}}
+  .fpanel{border-radius:10px; padding:14px 16px;}
+  .fpanel.early{background:#F3DCB4; border:1px solid #D9973F;}
+  .fpanel.late{background:#DCE4E9; border:1px solid #64798A;}
+  .fpanel h4{margin:0 0 6px; font-size:14px;}
+
+  .section-title{font-size:21px; margin:36px 0 6px;}
+  .section-sub{font-size:13px; color:var(--ink-soft); margin-bottom:14px;}
+  .checklist{list-style:none; padding:0; margin:0; display:grid; gap:8px;}
+  .checklist li{display:flex; align-items:flex-start; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 14px; font-size:13.5px;}
+  .checklist input{margin-top:3px; accent-color:var(--pine); width:16px; height:16px; flex-shrink:0;}
+  .checklist .done{text-decoration:line-through; color:#9AA6A1;}
+
+  .filterbar{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .filterbar button{border:1px solid var(--line); background:var(--card); padding:7px 15px; border-radius:999px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink-soft);}
+  .filterbar button.on{background:var(--pine); color:#fff; border-color:var(--pine);}
+  .extras{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media(max-width:640px){.extras{grid-template-columns:1fr;}}
+  .xcard{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
+  .xcard .xtop{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;}
+  .xcard h4{margin:0; font-size:14.5px;}
+  .xmeta{font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;}
+
+  .verify-title{font-size:21px; margin:36px 0 6px;}
+  .verify-list{font-size:13px; color:var(--ink-soft); padding-inline-start:20px;}
+  .verify-list li{margin-bottom:6px;}
+
+  footer{max-width:960px; margin:40px auto 0; padding:0 18px; font-size:12px; color:var(--ink-soft); border-top:1px solid var(--line); padding-top:16px;}
+</style>
+</head>
+<body>
+
+<div class="update-banner" id="updateBanner" role="status">
+  עדכון חדש זמין <button id="updateReloadBtn" type="button">טען מחדש</button>
+</div>
+<div class="offline-banner" id="offlineBanner" role="status">אין חיבור — מוצגת התחזית האחרונה שנשמרה</div>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">מסלול משפחתי · דרום צ׳כיה · גרסת PWA</div>
+    <h1>אגם ליפנו — מסלול דינמי לפי מזג אוויר</h1>
+    <div class="sub">18–23 באוגוסט 2026 · תחזית חיה מ־Open-Meteo, מתעדכנת אוטומטית לפי שעות הפעילות בפועל של כל יום — כל חלון פעילות מסווג בנפרד.</div>
+    <div class="group-strip">
+      <span class="pill">7 מבוגרים</span>
+      <span class="pill">9 ילדים, גילי 4–18</span>
+      <span class="pill">16 נפשות בס״ה</span>
+      <span class="pill">טירה אחת: צ׳סקי קרומלוב</span>
+      <span class="pill">22.8 — משפחת 5 עוזבת ~13:30</span>
+      <span class="pill">23.8 — 2 בטיסת 20:45 · 9 בטיסת 23:15</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="alert">
+    <b>לתשומת לבכם:</b> הקבוצה מונה בפועל <b>16 איש</b> (7 מבוגרים, 9 ילדים). זה משפיע על הזמנת מסעדות, מספר רפסודות ברפטינג, ותעריף קבוצתי בפארקי חבלים.
+  </div>
+
+  <div class="alert flight" id="flightAlert" role="alert"></div>
+
+  <div class="whatnow" id="whatnow">
+    <h3>מה עושים עכשיו?</h3>
+    <div id="whatnowBody"></div>
+  </div>
+
+  <div class="ribbon-title">
+    <span>תחזית מזג אוויר חיה — Lipno nad Vltavou</span>
+    <button class="refresh-btn" id="refreshBtn" type="button">🔄 רענון תחזית</button>
+  </div>
+  <div class="ribbon" id="ribbon"></div>
+  <div class="forecast-note" id="forecastNote"></div>
+
+  <div id="days"></div>
+
+  <div class="section-title">אופציות שלא נכללות במסלול כרגע</div>
+  <div class="section-sub">יעדים נוספים מהמדריך שהעליתם — לא בתוכנית הנוכחית, שימושיים להחלפה או לביקור עתידי.</div>
+  <div class="filterbar" id="filterbar"></div>
+  <div class="extras" id="extras"></div>
+
+  <div class="section-title">מה להזמין מראש</div>
+  <div class="section-sub">רשימה מעודכנת — לחצו כדי לסמן, השמירה נשארת בדפדפן שלכם.</div>
+  <ul class="checklist" id="checklist"></ul>
+
+  <div class="verify-title">נתונים שדורשים אימות אנושי</div>
+  <ul class="verify-list">
+    <li>שעות פתיחת Aquapalace Praha — מוצגות כאן 09:00–22:00 אך יש לאמת בקישור הרשמי לפני הנסיעה, שעות עשויות להשתנות לפי יום.</li>
+    <li>זמינות רפטינג/שיט בקרומלוב בפועל (ספק, שעה מדויקת, מדיניות ביטול בגשם) — לא קיים API, יש להתקשר/להזמין ידנית.</li>
+    <li>שעות פתיחה של Bikepark, פארק חבלים, Slideland, Aquaworld Lipno — משתנות לפי מזג אוויר ותחזוקה, לא מתעדכנות אוטומטית בכלי הזה.</li>
+    <li>תמחור דינמי של שביל צמרות העצים בערב — לבדוק באתר הרשמי סמוך למועד.</li>
+    <li>זמני נסיעה בפועל (פקקים, חניה) — מומלץ Waze/Google Maps בזמן אמת, במיוחד ב־23.8.</li>
+    <li>תדלוק והחזרת רכב שכור לפני הטיסות ב־23.8 — לא נכלל בחישוב הזמנים כאן, יש להוסיף בעצמכם.</li>
+  </ul>
+
+</div>
+
+<footer>
+  נבנה מתוך מסמכי המסלול ומדריך האטרקציות שהעליתם, בשילוב תחזית חיה מ־Open-Meteo ומחקר על האזור. הכלי הזה נותן המלצות, לא החלטות סופיות — שעות פעילות, זמינות ומחירים של אטרקציות עשויים להשתנות ואינם מגיעים מ־API. תחזית מזג האוויר עצמה כן חיה ומתעדכנת, וכל חלון פעילות מסווג בנפרד לפי השעות הרלוונטיות לו בלבד.
+</footer>
+
+<script>
+'use strict';
+
+/* ============ CONFIG ============ */
+const CONFIG = {
+  LOCATION: { lat: 48.6393, lon: 14.2293, name: "Lipno nad Vltavou" },
+  TIMEZONE: "Europe/Prague",
+  FORECAST_DAYS: 16,
+  THRESHOLDS: {
+    RAIN_PROB_MIXED_MIN: 25,   // % — at/above this and below HIGH => "mixed"
+    RAIN_PROB_HIGH_MIN: 60,    // % — at/above this => "rain"
+    WIND_GUST_KMH_MIN: 45,     // km/h gusts — at/above this => "wind" (if not already storm)
+    STORM_WEATHER_CODES: [95, 96, 99],
+    CONFIDENCE_HIGH_MAX_DAYS: 2,
+    CONFIDENCE_MEDIUM_MAX_DAYS: 5
+  },
+  DEFAULT_WINDOW: { start: "08:00", end: "21:00" }
+};
+
+const STORAGE_KEYS = {
+  CHECKLIST: 'lipno_checklist_v1',
+  LAST_DAY: 'lipno_lastday_v1',
+  MANUAL_WEATHER: 'lipno_manualweather_v1',
+  FORECAST_CACHE: 'lipno_forecast_v1',
+  FORECAST_TIME: 'lipno_forecast_time_v1'
+};
+
+const STATE_LABELS = {
+  clear: '☀️ בהיר', mixed: '⛅ מעורב', rain: '🌧️ גשם', wind: '💨 רוח', storm: '⛈️ סערה', unknown: '❓ לא ידוע'
+};
+// Priority order used when aggregating several windows into one day-level summary state.
+const STATE_ORDER = ['storm', 'wind', 'rain', 'mixed', 'clear'];
+
+/* ============ SAFE STORAGE HELPERS ============ */
+function safeGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
+function safeSet(key, val){ try{ localStorage.setItem(key, val); return true; }catch(e){ return false; } }
+function safeGetJSON(key){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
+function safeSetJSON(key, obj){ try{ localStorage.setItem(key, JSON.stringify(obj)); return true; }catch(e){ return false; } }
+
+/* ============ TRIP DAYS DATA ============
+   Each day has:
+   - fixed: items that always happen, regardless of weather (logistics, meals, meeting points)
+   - windows: activity-relevant time windows. Each window carries its OWN weather-state
+     content (byState.clear / .mixed / .rain / .wind / .storm), so a bad state in one
+     window (e.g. a storm at 19:00–21:30) does not affect a different window on the
+     same day (e.g. clear skies at 10:00–14:00).
+*/
+const days = [
+  {
+    id: 0, date: "2026-08-18", dateLabel: "18.8, שלישי", title: "נחיתה, נסיעה לליפנו וערב במרינה", character: "התאקלמות",
+    fixed: [
+      { start: "11:30", end: "12:30", label: "יציאה מהשדה", text: "יציאה משדה התעופה לאחר איסוף מזוודות ורכבים." },
+      { start: "12:30", end: "16:00", label: "בדרך", text: "עצירה אחת מסודרת לארוחת צהריים, וקנייה בסופר גדול (מים, פירות, חטיפים) לפני ליפנו." },
+      { start: "16:00", end: "17:30", label: "הגעה למלון", text: "הגעה משוערת למלון, התארגנות ומנוחה." }
+    ],
+    windows: [
+      { label: "ערב במרינה", start: "18:00", end: "20:00", byState: {
+        clear: [{ start: "18:00", end: "20:00", label: "ערב", text: "הליכה רגועה במרינה וביקור קצר במתחמי הפסטיבל, אם עדיין פעיל." }],
+        mixed: [{ start: "18:00", end: "19:00", label: "ערב", text: "הליכה קצרה במרינה אם אין גשם באותו רגע, אחרת להישאר במלון." }],
+        rain: [
+          { start: "18:00", end: "20:00", label: "ערב", text: "לוותר על הטיול במרינה — עדיף להישאר במלון ולנוח אחרי יום נסיעה ארוך." },
+          { start: "18:00", end: "20:00", label: "אופציונלי", text: "אם הגעתם מוקדם: Aquaworld Lipno (בריכה מקורה) סמוך למרינה." }
+        ],
+        wind: [{ start: "18:00", end: "19:30", label: "ערב", text: "הליכה במרינה עדיין אפשרית ברוח רגילה; להימנע מהמזח אם הרוח חזקה מאוד." }],
+        storm: [{ start: "18:00", end: "20:00", label: "ערב", text: "להישאר במלון עד שהסופה עוברת." }]
+      }}
+    ],
+    note: "קבעו מראש נקודת מפגש אחת וברורה במרינה — במהלך הפסטיבל המקום צפוי להיות עמוס.",
+    links: [{ type: "nav", label: "ניווט למרינה", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Lipno nad Vltavou marina") }]
+  },
+  {
+    id: 1, date: "2026-08-19", dateLabel: "19.8, רביעי", title: "צ׳סקי קרומלוב, רפטינג — הטירה היחידה במסלול", character: "עיר עתיקה ואקשן",
+    fixed: [
+      { start: "10:00", end: "10:40", label: "יציאה", text: "יציאה מהמלון (לפי הכלל של לא לפני 10:00)." },
+      { start: "10:40", end: "11:15", label: "הגעה וחניה", text: "הגעה לצ׳סקי קרומלוב, חניה והליכה למרכז — עם קבוצה של 16 יש לתכנן כ־20–30 דקות נוספות לחניה והליכה." },
+      { start: "13:15", end: "14:30", label: "צהריים", text: "ארוחת צהריים — חובה הזמנת מקום מראש לקבוצה של 16." },
+      { start: "17:45", end: "18:30", label: "יציאה", text: "יציאה חזרה לליפנו." }
+    ],
+    windows: [
+      { label: "טירה ועיר עתיקה", start: "11:15", end: "14:30", byState: {
+        clear: [{ start: "11:15", end: "13:00", label: "טירה ועיר עתיקה", text: "ביקור בטירה ובעיר העתיקה — הטירה היחידה בכל המסלול, אפשר לתת לה זמן איכות. שתי אפשרויות מקבילות באותה שעה: (1) סיור פנים בטירה, (2) מגדל הטירה + רחובות Latrán + גלידה." }],
+        mixed: [{ start: "11:15", end: "13:00", label: "טירה ועיר עתיקה", text: "כרגיל — אזורי החוץ בטירה בסדר גם במעונן." }],
+        rain: [{ start: "11:15", end: "13:00", label: "חלופה מקורה", text: "מכרה הגרפיט (70–90 דק׳, להזמין מראש), Fotoatelier Seidel, Film Legends Museum, מוזיאון המולדבייט, Port 1560 — כולם מקורים במרכז העיר." }],
+        wind: [{ start: "11:15", end: "13:00", label: "טירה ועיר עתיקה", text: "רוח בדרך כלל לא משפיעה על סיור בעיר." }],
+        storm: [{ start: "11:15", end: "13:00", label: "טירה ועיר עתיקה", text: "להעדיף את אזורי הפנים המקורים בטירה ובעיר." }]
+      }},
+      { label: "רפטינג/שיט", start: "15:00", end: "17:30", byState: {
+        clear: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "רפטינג/שיט עירוני על הוולטאבה (2–4 ק״מ), יוצא ונגמר בתוך העיר — בלי נסיעה נוספת." }],
+        mixed: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "לרוב ממשיך לפעול בגשם קל-בינוני — לוודא עם הספק בבוקר." }],
+        rain: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "עלול להצטמצם או להתבטל בגשם חזק — לוודא עם הספק לפני היציאה מהמלון." }],
+        wind: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "רוח חזקה עשויה להשפיע על שיט קל — לבדוק עם הספק אם יש הגבלה מיוחדת." }],
+        storm: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "יבוטל ברוב המקרים בסופת רעמים — לעבור לחלופות המקורות בעיר." }]
+      }}
+    ],
+    note: "אם יוצאים ב־10:00, עם חניה והליכה למרכז לקבוצה של 16, תחילת הביקור בפועל בטירה תהיה כ־11:15–11:30 — לא 11:00, אלא אם הוזמן כרטיס לשעה קבועה מראש. נדרש אישור מראש להשתתפות הילדה בת 4 ברפטינג.",
+    booking: "להזמין: רפטינג/שיט ~15:00 + מסעדה ל־16 סועדים",
+    links: [
+      { type: "official", label: "שעות הטירה", url: "https://www.zamek-ceskykrumlov.cz/en/plan-your-visit/opening-hours" },
+      { type: "official", label: "שעות אתרים 2026", url: "https://www.ckrumlov.info/en/opening-hours-of-monuments-museums-and-galleries-2026/" },
+      { type: "official", label: "מידע על מסלול השיט", url: "https://www.ckrumlov.info/en/hikingtrails-171-boating-through-krumlov/" },
+      { type: "nav", label: "ניווט לטירה", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Cesky Krumlov Castle") }
+    ]
+  },
+  {
+    id: 2, date: "2026-08-20", dateLabel: "20.8, חמישי", title: "יום האגם: חצי יום אופניים, מים — וערב בשביל צמרות העצים", character: "יום אגם ושקיעה בגובה",
+    fixed: [
+      { start: "10:00", end: "10:30", label: "איסוף אופניים", text: "רגילים למתבגרים, חשמליים למי שרוצה, נגרר/כיסא לילדה בת 4, קסדות לכולם." },
+      { start: "17:30", end: "18:30", label: "ארוחת ערב מוקדמת", text: "חשוב לאכול לפני שעולים להר לשביל." }
+    ],
+    windows: [
+      { label: "אופניים", start: "10:00", end: "14:00", byState: {
+        clear: [{ start: "10:30", end: "13:00", label: "אופניים", text: "רכיבה משפחתית לפרימבורק ובחזרה — כ־17 ק״מ הלוך-חזור בסך הכול (המעבורת המקומית חוצה לכיוון Frýdava בלבד ואינה מחזירה לליפנו, לכן אין אפשרות לחזור בה). שלוש אופציות: (1) רכיבה מלאה הלוך-חזור, (2) קיצור המסלול וסיבוב חזרה מנקודת ביניים, (3) תיאום מראש רכב איסוף/ליווי בפרימבורק למי שלא רוצה לרכוב את כל הדרך חזרה." }],
+        mixed: [{ start: "10:30", end: "12:30", label: "אופניים", text: "לצאת לרכיבה אך לקצר את המסלול אם מתחיל לרדת גשם — לסובב חזרה מנקודת ביניים." }],
+        rain: [{ start: "10:30", end: "12:00", label: "אופניים", text: "לשקול לוותר על הרכיבה או לקצר משמעותית." }],
+        wind: [{ start: "10:30", end: "13:00", label: "אופניים", text: "רכיבה בדרך כלל בסדר ברוח רגילה." }],
+        storm: [{ start: "10:30", end: "13:00", label: "אופניים", text: "להימנע מרכיבה בזמן סופת רעמים; להמתין שתעבור." }]
+      }},
+      { label: "פעילויות אגם", start: "14:00", end: "17:30", byState: {
+        clear: [{ start: "14:00", end: "17:30", label: "אחה״צ", text: "זמן פנוי באזור האגם/מרינה: סאפ, קיאקים, חוף, פסטיבל הספורט." }],
+        mixed: [{ start: "14:00", end: "17:00", label: "אחה״צ", text: "לבדוק מצב בזמן אמת: אם יבש — סאפ/חוף; אם רטוב — לעבור לחלופה מקורה." }],
+        rain: [{ start: "14:00", end: "17:00", label: "אחה״צ", text: "חלופה מקורה: Aquaworld Lipno, Czech Repubrick, Papilonia." }],
+        wind: [{ start: "14:00", end: "17:00", label: "אחה״צ", text: "סאפ/קיאקים עלולים להיות מוגבלים או מבוטלים ברוח — לעבור לחוף/פסטיבל/מנוחה." }],
+        storm: [{ start: "14:00", end: "17:00", label: "אחה״צ", text: "להפסיק כל פעילות מים מיד עם סימני סופה." }]
+      }},
+      { label: "שביל צמרות העצים", start: "19:00", end: "21:30", byState: {
+        clear: [{ start: "19:00", end: "21:30", label: "שביל צמרות העצים", text: "פתוח בערב רק בימי חמישי ביולי-אוגוסט, עם מוזיקה ותאורה. המרינה קרובה לרכבל בהליכה/נסיעה קצרה." }],
+        mixed: [{ start: "19:00", end: "21:30", label: "שביל צמרות העצים", text: "לרוב פתוח גם בגשם קל — לבדוק סמוך לשעה." }],
+        rain: [{ start: "19:00", end: "21:30", label: "שביל צמרות העצים", text: "בדרך כלל פתוח גם בגשם קל, אך זו אטרקציה חיצונית בגובה — יש לבדוק ברק/רוח חזקה סמוך לשעה." }],
+        wind: [{ start: "19:00", end: "21:30", label: "שביל צמרות העצים", text: "אטרקציית גובה חיצונית — רוח חזקה עלולה לגרום לסגירה או הגבלה. לבדוק מול המפעיל סמוך לשעה." }],
+        storm: [{ start: "19:00", end: "21:30", label: "שביל צמרות העצים", text: "כמעט תמיד ייסגר או יידחה בסופת רעמים — לבדוק לפני היציאה מהמלון ולא להסתמך על התוכנית המקורית." }]
+      }}
+    ],
+    note: "זהו היום העמוס ביותר במסלול (אופניים + מים + שביל בערב) — אם מרגישים שזה יותר מדי, האופציה הראשונה לקצץ היא לקצר את הרכיבה בחזרה. שימו לב: מזג אוויר גרוע באחד החלונות (למשל סופה בערב) לא בהכרח פוגע בשאר היום — כל חלון מסווג בנפרד.",
+    booking: "להזמין: כרטיסים לשביל צמרות העצים (תמחור דינמי) + אופניים/חשמליים/נגרר ל־16",
+    links: [
+      { type: "official", label: "שביל צמרות העצים", url: "https://www.stezkakorunamistromu.cz/en/" },
+      { type: "official", label: "לוח פסטיבל הספורט", url: "https://www.lipnosportfestival.cz/program/" },
+      { type: "nav", label: "ניווט לרכבל", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Lipno cable car lanovka") }
+    ]
+  },
+  {
+    id: 3, date: "2026-08-21", dateLabel: "21.8, שישי", title: "יום ההר המקומי: אקסטרים ופסטיבל ליפנו", character: "יום מקומי, בלי נסיעות ארוכות",
+    fixed: [
+      { start: "10:00", end: "10:15", label: "התחלה", text: "כל היום מתנהל באזור ליפנו עצמו, בלי נסיעה משמעותית." },
+      { start: "13:00", end: "14:00", label: "צהריים", text: "ארוחת צהריים משותפת." }
+    ],
+    windows: [
+      { label: "Bikepark / פארק חבלים", start: "10:00", end: "17:30", byState: {
+        clear: [{ start: "10:00", end: "17:30", label: "אפשרויות מקבילות", text: "לבחור לפי טעם, בלי חלוקה קבועה: Bikepark Lipno, פארק חבלים, Slideland, פארקור/OCR/בולדרינג/MTB בפסטיבל (בעיקר למתבגרים ומבוגרים), Království lesa — ממלכת היער (בעיקר לילדות בנות 4 ו־7, עם מלווה)." }],
+        mixed: [{ start: "10:00", end: "17:30", label: "אפשרויות מקבילות", text: "לבדוק שעה-שעה מה עדיין פתוח; לשלב בין הפעילויות החיצוניות למקורות לפי הצורך." }],
+        rain: [{ start: "10:00", end: "17:30", label: "חלופה מקורה", text: "Bikepark, פארק החבלים ו־Slideland בדרך כלל נסגרים או מוגבלים בגשם. חלופה: Aquaworld Lipno, Czech Repubrick, Papilonia — מקורים ומתאימים לילדים." }],
+        wind: [{ start: "10:00", end: "17:30", label: "אפשרויות מקבילות", text: "אלמנטים בגובה (חבלים, זיפליין) עשויים להשהות פעילות ברוח חזקה. Slideland ו־ממלכת היער לרוב פחות מושפעים." }],
+        storm: [{ start: "10:00", end: "17:30", label: "חלופה מקורה", text: "כל פעילויות הגובה החיצוניות ייסגרו בסופת רעמים. לעבור לחלופות המקורות." }]
+      }}
+    ],
+    note: "יום זה נועד להיות קליל לוגיסטית (אין נסיעה) כדי לאזן את היום העמוס שלפניו ואת יום הפרידה שאחריו. מנוחה למי שצריך: מנוחה במלון או ביקור נפרד ב־Aquaworld — אין להניח שיש בריכה במלון.",
+    booking: "להזמין: ציוד Bikepark ומגן למתבגרים ולמבוגרים",
+    links: [{ type: "official", label: "פעילויות ושבילי אופניים בליפנו", url: "https://lipno.amenity.cz/en/activities/" }, { type: "nav", label: "ניווט ל־Bikepark", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Bikepark Lipno") }]
+  },
+  {
+    id: 4, date: "2026-08-22", dateLabel: "22.8, שבת", title: "בוקר רגוע ליד האגם, פרידה, ואחה״צ למי שנשאר", character: "יום פרידה",
+    fixed: [
+      { start: "12:30", end: "13:30", label: "ארוחת פרידה", text: "ארוחת פרידה משותפת לכל 16 האנשים — לפני שמשפחת ה־5 (הורים + ילדים 17/15/10) יוצאת לדרכה." },
+      { start: "13:30", end: "13:45", label: "פרידה", text: "משפחת ה־5 יוצאת. שאר 11 האנשים ממשיכים את היום. מומלץ שהמשפחה תארוז מראש בערב הקודם או בבוקר, כדי שהפרידה לא תהיה בלחץ זמן." }
+    ],
+    windows: [
+      { label: "בוקר ליד האגם", start: "10:00", end: "12:30", byState: {
+        clear: [{ start: "10:00", end: "12:30", label: "בוקר", text: "בוקר רגוע לכל 16 האנשים ליד האגם/המרינה — חוף, גלידה, שיט קצר, הליכה. לא פעילות מאומצת." }],
+        mixed: [{ start: "10:00", end: "12:30", label: "בוקר", text: "הליכה קצרה במרינה, חוף אם יבש, אחרת בית קפה/מלון." }],
+        rain: [{ start: "10:00", end: "12:30", label: "בוקר", text: "עדיף להישאר קרוב למלון/מרכז מקורה, בלי תוכנית חוץ ממושכת." }],
+        wind: [{ start: "10:00", end: "12:30", label: "בוקר", text: "הליכה במרינה בסדר; להימנע מפעילות מים ברוח חזקה." }],
+        storm: [{ start: "10:00", end: "12:30", label: "בוקר", text: "להישאר מקורה עד שהסופה עוברת." }]
+      }},
+      { label: "אחה״צ אקשן/רגוע", start: "13:30", end: "19:00", byState: {
+        clear: [{ start: "13:30", end: "19:00", label: "אחה״צ (11 שנשארים)", text: "אפשרויות מקבילות: אקשן (סאפ/קיאקים, Bikepark, מיני גולף) או רגוע (חוף, שיט רגוע, פסטיבל, ממלכת היער אם לא ביקרו)." }],
+        mixed: [{ start: "13:30", end: "19:00", label: "אחה״צ (11 שנשארים)", text: "לבדוק בזמן אמת אם המים פעילים; אם לא — Aquaworld/Repubrick/Papilonia." }],
+        rain: [{ start: "13:30", end: "19:00", label: "אחה״צ (11 שנשארים)", text: "חלופה מקורה: Aquaworld Lipno, Czech Repubrick, Papilonia, ומתחמי הפסטיבל המקורים אם מופעלים." }],
+        wind: [{ start: "13:30", end: "19:00", label: "אחה״צ (11 שנשארים)", text: "סאפ/קיאקים תלויים ברוח — לעבור לחוף/פסטיבל אם יש הגבלה." }],
+        storm: [{ start: "13:30", end: "19:00", label: "אחה״צ (11 שנשארים)", text: "כל פעילויות המים מופסקות. לעבור לחלופות מקורות." }]
+      }},
+      { label: "ערב אחרון", start: "19:00", end: "21:00", byState: {
+        clear: [{ start: "19:00", end: "21:00", label: "ערב אחרון", text: "ארוחה משפחתית מסודרת (ל־11), הליכה במרינה והופעה/פעילות בפסטיבל, אריזה לקראת 23.8." }],
+        mixed: [{ start: "19:00", end: "21:00", label: "ערב אחרון", text: "ארוחה משפחתית מסודרת (ל־11); הליכה קצרה במרינה רק אם יבש באותו רגע, ואריזה לקראת 23.8." }],
+        rain: [{ start: "19:00", end: "21:00", label: "ערב אחרון", text: "ארוחה משפחתית מסודרת (ל־11); הליכה קצרה במרינה רק אם עוצמת הגשם מאפשרת זאת, ואריזה לקראת 23.8." }],
+        wind: [{ start: "19:00", end: "21:00", label: "ערב אחרון", text: "ארוחה משפחתית מסודרת (ל־11); הליכה במרינה רק אם זה בטוח ונעים ברוח שיש, ואריזה לקראת 23.8." }],
+        storm: [{ start: "19:00", end: "21:00", label: "ערב אחרון", text: "ארוחה משפחתית מסודרת (ל־11) במקום מקורה, ואריזה לקראת 23.8 — בלי הליכה בחוץ עד שהסופה חולפת." }]
+      }}
+    ],
+    note: "22.8 צפוי גם יום פעילויות מים במסגרת הפסטיבל — לבדוק תוכנית סופית סמוך לנסיעה.",
+    links: [{ type: "official", label: "לוח אירועים ליפנו", url: "https://www.lipno.info/kalendar.html" }]
+  },
+  {
+    id: 5, date: "2026-08-23", dateLabel: "23.8, ראשון", title: "פארק המים Aquapalace Praha ופיצול טיסות", character: "יום מעבר ומים",
+    fixed: [
+      { start: "08:00", end: "08:30", label: "יציאה", text: "יציאה מ־Hotel Element בערך 08:00 (חריג לכלל \"לא לפני 10\"). נסיעה משוערת 2.5–3 שעות ל־Čestlice, דרום-מזרחית לפראג." },
+      { start: "11:00", end: "11:15", label: "הגעה", text: "הגעה משוערת ל־Aquapalace Praha בסביבות 11:00. שעות פתיחה מוצגות כ־09:00–22:00 — יש לאמת בקישור הרשמי לפני הנסיעה." },
+      { start: "11:00", end: "16:00", label: "בפארק", text: "זמן חופשי בפארק המים לכל 11 הנוסעים." },
+      { start: "16:00", end: "16:15", label: "פיצול — קבוצת 20:45", text: "שני נוסעי טיסת 20:45 יוצאים מהפארק בסביבות 16:00 — נסיעה לשדה, החזרת רכב וצ׳ק־אין." },
+      { start: "18:15", end: "18:30", label: "פיצול — קבוצת 23:15", text: "תשעת נוסעי טיסת 23:15 יוצאים מהפארק בסביבות 18:15–18:30." }
+    ],
+    windows: [
+      { label: "Aquapalace", start: "11:00", end: "18:30", byState: {
+        clear: [], mixed: [],
+        rain: [{ start: "11:00", end: "18:30", label: "יתרון", text: "Aquapalace ברובו מקורה — כמעט ולא מושפע ממזג אוויר. בחירה בטוחה ליום האחרון." }],
+        wind: [], storm: []
+      }}
+    ],
+    note: "אזהרה: שני הזמנים הקריטיים (16:00 ו־18:15–18:30) תלויים בפקקים אמיתיים בכביש בין Čestlice לשדה — לבדוק ב־Waze בזמן אמת לפני היציאה מהפארק. יש להביא בחשבון גם תדלוק והחזרת רכב שכור, שאינם כלולים בזמנים שלמעלה. אם יש יותר מרכב שכור אחד, לתאם מראש איזה רכב לאיזו טיסה.",
+    booking: "להזמין: כרטיסי Aquapalace מראש + לתאם רכבים לפי הטיסות",
+    links: [{ type: "official", label: "שעות פתיחה רשמיות — Aquapalace", url: "https://www.aquapalace.cz/en/uzitecne-informace/oteviraci-doba" }, { type: "nav", label: "ניווט ל־Aquapalace", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Aquapalace Praha Cestlice") }],
+    flightSplit: {
+      early: { label: "קבוצת טיסת 20:45", people: "2 נוסעים", leavePark: "~16:00", flightTime: "2026-08-23T20:45:00" },
+      late: { label: "קבוצת טיסת 23:15", people: "9 נוסעים", leavePark: "~18:15–18:30", flightTime: "2026-08-23T23:15:00" }
+    }
+  }
+];
+
+const extras = [
+  { name: "טירת הלובוקה — גנים וחצר חוץ בלבד", weather: "clear", area: "70–90 דק׳", desc: "הגנים והחצר החיצונית חופשיים בכניסה (רק הסיור הפנימי בתשלום). אופציה אם בכל זאת יתחשק \"טירה שנייה\" קלה." },
+  { name: "פארק האדרנלין הלובוקה", weather: "clear", area: "70–90 דק׳", desc: "חבלים גדול+טכני, טרמפולינות, מיני גולף, אזור מים. תעריף קבוצתי מ־15 איש." },
+  { name: "צ׳סקה בודיוביצה", weather: "any", area: "70–90 דק׳", desc: "כיכר Přemysl Otakar II, המגדל השחור, רחובות ובתי קפה." },
+  { name: "שמורת שומאבה — Soumarské rašeliniště", weather: "any", area: "60–90 דק׳", desc: "שביל ביצה קצר ונוח על גשר עץ, כ־1.5 ק״מ, מגדל תצפית 9 מ׳." },
+  { name: "Bear Trail — Medvědí stezka", weather: "clear", area: "60–90 דק׳", desc: "מסלול הליכה ארוך יותר (3–6 שעות) עם תצורות סלע ביער. לא לעגלות." },
+  { name: "טירת Rožmberk", weather: "clear", area: "30–35 דק׳", desc: "טירה מהמאה ה־13 מעל הוולטאבה. הכי קרובה מבין הטירות הנוספות." },
+  { name: "מנזר Vyšší Brod + חומת השטן + מפל St. Wolfgang", weather: "any", area: "20–25 דק׳", desc: "שילוב תרבות וטבע קרוב וקליל לחצי יום." },
+  { name: "Aquaworld Lipno", weather: "rain", area: "בליפנו", desc: "בריכה מקורה, אזור ילדים, ג׳קוזי. אופציית גשם קרובה וקלה." },
+  { name: "Czech Repubrick", weather: "rain", area: "בליפנו", desc: "דגמי לגו גדולים של אתרים צ׳כיים. מתאים בעיקר לגיל 4–12." },
+  { name: "Papilonia Lipno", weather: "rain", area: "בליפנו", desc: "חלל טרופי עם פרפרים חיים. תוספת קצרה (30–60 דק׳)." },
+  { name: "מכרה הגרפיט (קרומלוב)", weather: "rain", area: "בקרומלוב", desc: "רכבת מכרה קצרה והליכה תת-קרקעית, 70–90 דק׳. להזמין מראש." },
+  { name: "Fotoatelier Seidel, Film Legends, מוזיאון המולדבייט, Port 1560", weather: "rain", area: "בקרומלוב", desc: "ארבעה אתרים מקורים במרכז קרומלוב, כ־45–90 דק׳ כל אחד." },
+  { name: "שיט תיירותי / השכרת סירה / דיג באגם", weather: "any", area: "בליפנו/פרימבורק", desc: "אפשרויות גמישות על האגם, שעה עד חצי יום." }
+];
+
+const bookingList = [
+  "רפטינג/שיט בצ׳סקי קרומלוב — 19.8 בשעה 15:00 לערך, ל־16 איש",
+  "מסעדה בצ׳סקי קרומלוב ל־16 סועדים",
+  "כרטיסים לשביל צמרות העצים בערב 20.8 — תמחור דינמי באתר",
+  "אופניים, אופניים חשמליים ונגרר לילד — 20.8",
+  "ציוד Bikepark ומגן — 21.8",
+  "ארוחת פרידה ב־22.8 בצהריים למשפחת ה־5 היוצאת",
+  "ארוחת ערב משפחתית אחרונה ב־22.8 (ל־11 הנשארים)",
+  "כרטיסי Aquapalace Praha ל־23.8 — מומלץ מראש, במיוחד בסופ״ש",
+  "תיאום רכבים: איזה רכב הולך לטיסת 20:45 ואיזה לטיסת 23:15",
+  "תדלוק והחזרת רכב שכור לפני הטיסות ב־23.8"
+];
+
+/* ============ APP STATE ============ */
+const state = {
+  activeDay: 0,
+  forecastData: null,
+  forecastTime: null,
+  offline: false,
+  loading: false,
+  manualWeather: safeGetJSON(STORAGE_KEYS.MANUAL_WEATHER) || {},
+  extraFilter: 'all'
+};
+
+/* ============ DATE / TIME HELPERS (Europe/Prague) ============ */
+function nowInPrague(){
+  return new Date(new Date().toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE }));
+}
+function todayISOInPrague(){
+  const d = nowInPrague();
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function hhmmNow(){
+  const d = nowInPrague();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function hhmmToMinutes(hhmm){
+  const [h,m] = hhmm.split(':').map(Number);
+  return h*60+m;
+}
+function daysBetween(isoA, isoB){
+  const a = new Date(isoA+'T00:00:00');
+  const b = new Date(isoB+'T00:00:00');
+  return Math.round((b-a)/86400000);
+}
+
+/* ============ WEATHER FETCH ============ */
+async function fetchForecast(){
+  const params = new URLSearchParams({
+    latitude: CONFIG.LOCATION.lat,
+    longitude: CONFIG.LOCATION.lon,
+    timezone: CONFIG.TIMEZONE,
+    forecast_days: CONFIG.FORECAST_DAYS,
+    daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset",
+    hourly: "weather_code,temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m"
+  });
+  const url = "https://api.open-meteo.com/v1/forecast?" + params.toString();
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Open-Meteo request failed: ' + res.status);
+  return res.json();
+}
+
+async function loadWeather(){
+  const cached = safeGetJSON(STORAGE_KEYS.FORECAST_CACHE);
+  const cachedTime = safeGet(STORAGE_KEYS.FORECAST_TIME);
+  if(cached && !state.forecastData){
+    state.forecastData = cached;
+    state.forecastTime = cachedTime;
+    renderAll();
+  }
+  state.loading = true;
+  updateRefreshBtn();
+  try{
+    const fresh = await fetchForecast();
+    state.forecastData = fresh;
+    state.forecastTime = new Date().toISOString();
+    safeSetJSON(STORAGE_KEYS.FORECAST_CACHE, fresh);
+    safeSet(STORAGE_KEYS.FORECAST_TIME, state.forecastTime);
+    state.offline = false;
+  }catch(err){
+    console.error('Weather fetch failed', err);
+    state.offline = true;
+  }finally{
+    state.loading = false;
+    updateRefreshBtn();
+    renderAll();
+  }
+}
+
+/* ============ WEATHER CLASSIFICATION ============ */
+function findDailyIndex(data, dateISO){
+  if(!data || !data.daily || !data.daily.time) return -1;
+  return data.daily.time.indexOf(dateISO);
+}
+function hourlyIndicesForWindow(data, dateISO, startHHMM, endHHMM){
+  if(!data || !data.hourly || !data.hourly.time) return [];
+  const startMin = hhmmToMinutes(startHHMM), endMin = hhmmToMinutes(endHHMM);
+  const out = [];
+  data.hourly.time.forEach((t, idx) => {
+    if(!t.startsWith(dateISO)) return;
+    const hh = t.substring(11,16);
+    const mins = hhmmToMinutes(hh);
+    if(mins >= startMin && mins <= endMin) out.push(idx);
+  });
+  return out;
+}
+
+// Classifies ONE specific activity window (e.g. "19:00–21:30") using only the
+// hourly data that falls inside that window. This is the building block both
+// for per-window recommendations and for the day-level summary below.
+function classifyWindowFull(data, dayObj, w){
+  if(!data) return { state: 'unknown' };
+  const dailyIdx = findDailyIndex(data, dayObj.date);
+  if(dailyIdx === -1) return { state: 'unknown' };
+
+  const idxs = hourlyIndicesForWindow(data, dayObj.date, w.start, w.end);
+  let maxPrecipProb = data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[dailyIdx] : 0;
+  let maxGust = data.daily.wind_speed_10m_max ? data.daily.wind_speed_10m_max[dailyIdx] : 0;
+  let codes = [data.daily.weather_code ? data.daily.weather_code[dailyIdx] : 0];
+
+  if(idxs.length && data.hourly){
+    maxPrecipProb = 0; maxGust = 0; codes = [];
+    idxs.forEach(i => {
+      const p = data.hourly.precipitation_probability ? data.hourly.precipitation_probability[i] : 0;
+      const g = data.hourly.wind_gusts_10m ? data.hourly.wind_gusts_10m[i] : 0;
+      const c = data.hourly.weather_code ? data.hourly.weather_code[i] : 0;
+      if(p !== null && p !== undefined && p > maxPrecipProb) maxPrecipProb = p;
+      if(g !== null && g !== undefined && g > maxGust) maxGust = g;
+      codes.push(c);
+    });
+  }
+
+  const T = CONFIG.THRESHOLDS;
+  let cls = 'clear';
+  if(codes.some(c => T.STORM_WEATHER_CODES.includes(c))) cls = 'storm';
+  else if(maxGust >= T.WIND_GUST_KMH_MIN) cls = 'wind';
+  else if(maxPrecipProb >= T.RAIN_PROB_HIGH_MIN) cls = 'rain';
+  else if(maxPrecipProb >= T.RAIN_PROB_MIXED_MIN) cls = 'mixed';
+
+  const tMax = data.daily.temperature_2m_max ? data.daily.temperature_2m_max[dailyIdx] : null;
+  const tMin = data.daily.temperature_2m_min ? data.daily.temperature_2m_min[dailyIdx] : null;
+  const daysAhead = daysBetween(todayISOInPrague(), dayObj.date);
+  let confidence = 'low';
+  if(daysAhead <= T.CONFIDENCE_HIGH_MAX_DAYS) confidence = 'high';
+  else if(daysAhead <= T.CONFIDENCE_MEDIUM_MAX_DAYS) confidence = 'medium';
+
+  return { state: cls, precipProb: maxPrecipProb, gust: maxGust, tMax, tMin, confidence, daysAhead };
+}
+
+// Day-level SUMMARY: the worst-case state across all of that day's windows
+// (used for the ribbon tile and the top weather box), built from the same
+// per-window classification so the two never disagree on the underlying data.
+function classifyDay(data, dayObj){
+  if(!data) return { state: 'unknown' };
+  const dailyIdx = findDailyIndex(data, dayObj.date);
+  if(dailyIdx === -1) return { state: 'unknown' };
+
+  const windows = (dayObj.windows && dayObj.windows.length) ? dayObj.windows : [CONFIG.DEFAULT_WINDOW];
+  const results = windows.map(w => classifyWindowFull(data, dayObj, w));
+
+  let worst = results[0];
+  results.forEach(r => {
+    const rPos = STATE_ORDER.indexOf(r.state);
+    const worstPos = STATE_ORDER.indexOf(worst.state);
+    if(rPos !== -1 && (worstPos === -1 || rPos < worstPos)) worst = r;
+  });
+  const maxPrecipProb = Math.max(...results.map(r => r.precipProb || 0));
+  const maxGust = Math.max(...results.map(r => r.gust || 0));
+  return Object.assign({}, worst, { precipProb: maxPrecipProb, gust: maxGust });
+}
+
+function confidenceLabel(c){
+  return c === 'high' ? 'ביטחון גבוה' : c === 'medium' ? 'ביטחון בינוני' : c === 'low' ? 'ביטחון נמוך' : '';
+}
+function recommendationText(cls){
+  const map = {
+    clear: 'יום טוב לפעילות חוץ כמתוכנן.',
+    mixed: 'מזג אוויר משתנה — לבדוק שוב קרוב לשעת הפעילות ולהיות גמישים.',
+    rain: 'סיכוי גשם גבוה בשעות הפעילות — כדאי להכין חלופה מקורה.',
+    wind: 'רוח/משבים חזקים צפויים — לבדוק השפעה על אגם, SUP, רכבל ופארקי גובה.',
+    storm: 'סופת רעמים צפויה — להימנע מפעילויות חוץ וגובה, ולעקוב אחרי עדכונים.',
+    unknown: 'אין עדיין תחזית אמינה ליום זה.'
+  };
+  return map[cls] || '';
+}
+function wmoIcon(code){
+  if(code === 0) return '☀️';
+  if([1,2,3].includes(code)) return '⛅';
+  if([45,48].includes(code)) return '🌫️';
+  if([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return '🌧️';
+  if([71,73,75,77,85,86].includes(code)) return '❄️';
+  if([95,96,99].includes(code)) return '⛈️';
+  return '🌤️';
+}
+
+/* ============ EFFECTIVE STATE: manual override keeps the underlying auto stats ============
+   Only the "state" field is replaced by the manual choice; tMin/tMax/precipProb/gust/
+   confidence/daysAhead all still come from the real forecast, so the numbers shown
+   stay honest even while a manual weather mode is active. */
+function effectiveState(dayObj){
+  const auto = classifyDay(state.forecastData, dayObj);
+  const manual = state.manualWeather[dayObj.id];
+  if(manual && manual !== 'auto'){
+    return Object.assign({}, auto, { state: manual, manual: true });
+  }
+  return Object.assign({}, auto, { manual: false });
+}
+function effectiveWindowState(dayObj, windowIndex){
+  const w = dayObj.windows[windowIndex];
+  const auto = classifyWindowFull(state.forecastData, dayObj, w);
+  const manual = state.manualWeather[dayObj.id];
+  if(manual && manual !== 'auto'){
+    return Object.assign({}, auto, { state: manual, manual: true });
+  }
+  return Object.assign({}, auto, { manual: false });
+}
+function setManualWeather(dayId, val){
+  if(val === 'auto'){ delete state.manualWeather[dayId]; }
+  else{ state.manualWeather[dayId] = val; }
+  safeSetJSON(STORAGE_KEYS.MANUAL_WEATHER, state.manualWeather);
+  renderAll();
+}
+
+/* ============ MERGE fixed + per-window content into ONE chronological schedule ============
+   Per window: if that window's effective state is 'unknown' (no forecast data yet, e.g.
+   beyond the 16-day range), we do NOT default to the "clear" content — we show a plain
+   "no forecast yet" placeholder instead, so nobody mistakes missing data for good weather. */
+function buildDaySchedule(day){
+  const items = day.fixed.map(it => Object.assign({ badge: null }, it));
+  const windows = day.windows || [];
+  windows.forEach((w, wi) => {
+    const eff = effectiveWindowState(day, wi);
+    if(eff.state === 'unknown'){
+      items.push({
+        start: w.start, end: w.end, label: w.label,
+        text: 'אין עדיין תחזית אמינה לחלון זה — התוכנית המקורית ממתינה; יש לבדוק שוב קרוב למועד.',
+        badge: 'unknown'
+      });
+      return;
+    }
+    const stateItems = (w.byState && w.byState[eff.state]) || [];
+    stateItems.forEach(it => items.push(Object.assign({ badge: eff.state }, it)));
+  });
+  return items.sort((a,b) => hhmmToMinutes(a.start) - hhmmToMinutes(b.start));
+}
+
+/* ============ RENDER: TOP BANNERS ============ */
+function updateRefreshBtn(){
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = state.loading;
+  btn.textContent = state.loading ? '⏳ מרענן…' : '🔄 רענון תחזית';
+  document.getElementById('offlineBanner').style.display = state.offline ? 'block' : 'none';
+}
+
+function renderForecastNote(){
+  const el = document.getElementById('forecastNote');
+  el.textContent = '';
+  const parts = [];
+  if(state.forecastTime){
+    const d = new Date(state.forecastTime);
+    const timeStr = d.toLocaleString('he-IL', { timeZone: CONFIG.TIMEZONE, hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+    parts.push('עדכון אחרון: ' + timeStr + ' (שעון צ׳כיה)');
+  } else {
+    parts.push('טרם נטענה תחזית.');
+  }
+  parts.push('מקור: Open-Meteo. מעבר לטווח 16 הימים תוצג \"טרם זמין\".');
+  el.textContent = parts.join(' · ');
+}
+
+/* ============ RENDER: RIBBON ============ */
+function renderRibbon(){
+  const el = document.getElementById('ribbon');
+  el.innerHTML = '';
+  days.forEach((day, i) => {
+    const eff = effectiveState(day);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rcard' + (i === state.activeDay ? ' active' : '') + (eff.state === 'unknown' ? ' state-unknown' : '');
+    btn.setAttribute('aria-label', day.dateLabel + ' - ' + (STATE_LABELS[eff.state] || ''));
+    btn.addEventListener('click', () => selectDay(i));
+
+    const dEl = document.createElement('div'); dEl.className = 'd'; dEl.textContent = day.dateLabel.split(', ')[1] || '';
+    const dateEl = document.createElement('div'); dateEl.className = 'date'; dateEl.textContent = day.dateLabel.split(',')[0];
+    const iconEl = document.createElement('div'); iconEl.className = 'icon';
+    let iconChar = '❓';
+    if(eff.state !== 'unknown'){
+      const dailyIdx = findDailyIndex(state.forecastData, day.date);
+      iconChar = (dailyIdx > -1 && state.forecastData.daily.weather_code) ? wmoIcon(state.forecastData.daily.weather_code[dailyIdx]) : (STATE_LABELS[eff.state]||'').split(' ')[0];
+    }
+    iconEl.textContent = iconChar;
+    const tempEl = document.createElement('div'); tempEl.className = 'temp';
+    tempEl.textContent = (eff.tMax !== undefined && eff.tMax !== null) ? Math.round(eff.tMax) + '°/' + Math.round(eff.tMin) + '°' : (eff.state === 'unknown' ? 'טרם זמין' : '—');
+    const confEl = document.createElement('div'); confEl.className = 'conf';
+    confEl.textContent = eff.manual ? '✋ ידני' : (eff.confidence ? confidenceLabel(eff.confidence) : '');
+
+    btn.append(dEl, dateEl, iconEl, tempEl, confEl);
+    el.appendChild(btn);
+  });
+  renderForecastNote();
+}
+
+function selectDay(i){
+  state.activeDay = i;
+  safeSet(STORAGE_KEYS.LAST_DAY, String(i));
+  renderRibbon();
+  renderDays();
+  document.getElementById('daycard-'+i)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ============ RENDER: DAY CARDS ============ */
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+function scheduleListEl(items){
+  const ul = document.createElement('ul');
+  ul.className = 'schedule';
+  items.forEach(it => {
+    const li = document.createElement('li');
+    const timeSpan = document.createElement('span'); timeSpan.className = 'time';
+    timeSpan.textContent = it.end ? (it.start + '–' + it.end) : it.start;
+    const textSpan = document.createElement('span');
+    const icon = it.badge ? ((STATE_LABELS[it.badge] || '❓').split(' ')[0] + ' ') : '';
+    textSpan.innerHTML = icon + '<b>' + escapeHtml(it.label) + ':</b> ' + escapeHtml(it.text);
+    li.append(timeSpan, textSpan);
+    ul.appendChild(li);
+  });
+  return ul;
+}
+
+function renderDays(){
+  const el = document.getElementById('days');
+  el.innerHTML = '';
+  const todayISO = todayISOInPrague();
+
+  days.forEach((day, i) => {
+    const card = document.createElement('div');
+    card.className = 'daycard' + (day.date === todayISO ? ' is-today' : '');
+    card.id = 'daycard-' + i;
+    card.style.display = (i === state.activeDay) ? '' : 'none';
+
+    const top = document.createElement('div'); top.className = 'daytop';
+    const charEl = document.createElement('div'); charEl.className = 'char'; charEl.textContent = day.character;
+    const h2 = document.createElement('h2'); h2.textContent = day.dateLabel + ' — ' + day.title;
+    top.append(charEl, h2);
+
+    const eff = effectiveState(day);
+    const wbox = document.createElement('div'); wbox.className = 'weatherbox';
+    const wrow = document.createElement('div'); wrow.className = 'wrow';
+    const s1 = document.createElement('span'); s1.className = 'wchip'; s1.textContent = 'מצב כללי ליום: ' + (STATE_LABELS[eff.state] || 'לא ידוע');
+    const s2 = document.createElement('span'); s2.className = 'wchip';
+    s2.textContent = (eff.tMax !== undefined && eff.tMax !== null) ? ('טמפ׳: ' + Math.round(eff.tMin) + '°–' + Math.round(eff.tMax) + '°C') : 'טמפ׳: אין נתון';
+    const s3 = document.createElement('span'); s3.className = 'wchip';
+    s3.textContent = (eff.precipProb !== undefined) ? ('סיכוי גשם (מקסימום בין החלונות): ' + Math.round(eff.precipProb) + '%') : '';
+    const s4 = document.createElement('span'); s4.className = 'wchip';
+    s4.textContent = (eff.gust !== undefined) ? ('משבי רוח: עד ' + Math.round(eff.gust) + ' קמ״ש') : '';
+    const s5 = document.createElement('span'); s5.className = 'wchip';
+    s5.textContent = eff.manual ? '✋ נבחר ידנית' : (eff.confidence ? confidenceLabel(eff.confidence) : '');
+    [s1,s2,s3,s4,s5].forEach(s => { if(s.textContent) wrow.appendChild(s); });
+    wbox.appendChild(wrow);
+    const rec = document.createElement('div'); rec.className = 'rec'; rec.textContent = recommendationText(eff.state);
+    wbox.appendChild(rec);
+
+    if(day.windows && day.windows.length){
+      const chips = document.createElement('div'); chips.className = 'windowchips';
+      day.windows.forEach((w, wi) => {
+        const weff = effectiveWindowState(day, wi);
+        const chip = document.createElement('span'); chip.className = 'windowchip';
+        const label = STATE_LABELS[weff.state] || '❓ לא ידוע';
+        const precipTxt = (weff.precipProb !== undefined && weff.state !== 'unknown') ? (' · ' + Math.round(weff.precipProb) + '% גשם') : '';
+        chip.textContent = w.label + ' (' + w.start + '–' + w.end + '): ' + label + precipTxt;
+        chips.appendChild(chip);
+      });
+      wbox.appendChild(chips);
+    }
+    top.appendChild(wbox);
+
+    const toggleRow = document.createElement('div'); toggleRow.className = 'toggle-row';
+    const modes = [['auto','אוטומטי לפי התחזית'], ['clear','☀️ בהיר'], ['mixed','⛅ מעורב'], ['rain','🌧️ גשם'], ['wind','💨 רוח'], ['storm','⛈️ סערה']];
+    const currentManual = state.manualWeather[day.id] || 'auto';
+    modes.forEach(([val, label]) => {
+      const b = document.createElement('button'); b.type = 'button';
+      b.textContent = label;
+      b.className = (currentManual === val) ? ('on ' + val) : '';
+      b.setAttribute('aria-pressed', currentManual === val ? 'true' : 'false');
+      b.addEventListener('click', () => setManualWeather(day.id, val));
+      toggleRow.appendChild(b);
+    });
+    top.appendChild(toggleRow);
+    if(eff.manual){
+      const flag = document.createElement('div'); flag.className = 'manual-flag';
+      flag.textContent = 'מצב ידני פעיל לכל חלונות היום — לא עוקב אחרי התחזית האוטומטית עד שתלחצו \"אוטומטי לפי התחזית\".';
+      top.appendChild(flag);
+    }
+
+    card.appendChild(top);
+
+    const body = document.createElement('div'); body.className = 'daybody';
+    body.appendChild(scheduleListEl(buildDaySchedule(day)));
+
+    if(day.flightSplit){
+      const fp = document.createElement('div'); fp.className = 'flight-panels';
+      const mk = (cls, data) => {
+        const div = document.createElement('div'); div.className = 'fpanel ' + cls;
+        const h4 = document.createElement('h4'); h4.textContent = data.label + ' (' + data.people + ')';
+        const p = document.createElement('div'); p.textContent = 'יציאה מהפארק: ' + data.leavePark;
+        div.append(h4, p);
+        return div;
+      };
+      fp.append(mk('early', day.flightSplit.early), mk('late', day.flightSplit.late));
+      body.appendChild(fp);
+    }
+
+    if(day.note){ const n = document.createElement('div'); n.className = 'note'; n.innerHTML = escapeHtml(day.note); body.appendChild(n); }
+    if(day.booking){ const b = document.createElement('div'); b.className = 'book'; b.textContent = '📌 ' + day.booking; body.appendChild(b); }
+    if(day.links && day.links.length){
+      const lr = document.createElement('div'); lr.className = 'linkrow';
+      day.links.forEach(l => {
+        const a = document.createElement('a'); a.className = 'linkbtn'; a.href = l.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        const icon = l.type === 'nav' ? '🧭 ' : l.type === 'official' ? '🔗 ' : '📝 ';
+        a.textContent = icon + l.label;
+        lr.appendChild(a);
+      });
+      body.appendChild(lr);
+    }
+
+    card.appendChild(body);
+    el.appendChild(card);
+  });
+}
+
+/* ============ RENDER: WHAT'S NOW ============ */
+function renderWhatNow(){
+  const body = document.getElementById('whatnowBody');
+  body.innerHTML = '';
+  const todayISO = todayISOInPrague();
+  const day = days.find(d => d.date === todayISO);
+  if(!day){
+    const p = document.createElement('div'); p.className = 'muted';
+    p.textContent = 'הכלי הזה יציג כאן את הפעילות הנוכחית בזמן אמת במהלך הטיול (18–23.8.2026).';
+    body.appendChild(p);
+    return;
+  }
+  const items = buildDaySchedule(day);
+  const nowMin = hhmmToMinutes(hhmmNow());
+  let current = null, next = null;
+  for(let i=0;i<items.length;i++){
+    const startMin = hhmmToMinutes(items[i].start);
+    const endMin = items[i].end ? hhmmToMinutes(items[i].end) : (items[i+1] ? hhmmToMinutes(items[i+1].start) : 23*60+59);
+    if(nowMin >= startMin && nowMin < endMin){ current = items[i]; next = items[i+1] || null; break; }
+    if(nowMin < startMin){ next = items[i]; break; }
+  }
+  if(current){
+    const row = document.createElement('div'); row.className = 'row';
+    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = 'עכשיו';
+    const txt = document.createElement('span'); txt.textContent = current.label + ': ' + current.text;
+    row.append(tag, txt); body.appendChild(row);
+  } else {
+    const row = document.createElement('div'); row.className = 'row muted';
+    row.textContent = 'אין פעילות מתוזמנת ברגע זה.';
+    body.appendChild(row);
+  }
+  if(next){
+    const row = document.createElement('div'); row.className = 'row';
+    const tag = document.createElement('span'); tag.className = 'tag next'; tag.textContent = 'הבא';
+    const txt = document.createElement('span'); txt.textContent = next.start + ' — ' + next.label + ': ' + next.text;
+    row.append(tag, txt); body.appendChild(row);
+  }
+}
+
+/* ============ FLIGHT ALERT (23.8 only) ============ */
+function renderFlightAlert(){
+  const el = document.getElementById('flightAlert');
+  const todayISO = todayISOInPrague();
+  const day5 = days[5];
+  if(todayISO !== day5.date || !day5.flightSplit){ el.style.display = 'none'; return; }
+  const now = nowInPrague();
+  const msgs = [];
+  ['early','late'].forEach(k => {
+    const f = day5.flightSplit[k];
+    const flightDate = new Date(f.flightTime);
+    const hoursLeft = (flightDate - now) / 3600000;
+    if(hoursLeft > 0 && hoursLeft < 4){
+      msgs.push('⚠️ ' + f.label + ': נשארו פחות מ־4 שעות לטיסה — זמן לצאת לכיוון השדה אם עוד לא יצאתם.');
+    }
+  });
+  if(msgs.length){ el.textContent = msgs.join(' | '); el.style.display = 'block'; }
+  else{ el.style.display = 'none'; }
+}
+
+/* ============ EXTRAS ============ */
+function renderFilterbar(){
+  const el = document.getElementById('filterbar');
+  el.innerHTML = '';
+  const opts = [['all','הכל'],['clear','☀️ שמש'],['rain','🌧️ גשם'],['any','🔁 גמיש']];
+  opts.forEach(([v,l]) => {
+    const b = document.createElement('button'); b.type='button'; b.textContent = l;
+    b.className = state.extraFilter === v ? 'on' : '';
+    b.setAttribute('aria-pressed', state.extraFilter === v ? 'true':'false');
+    b.addEventListener('click', () => { state.extraFilter = v; renderFilterbar(); renderExtras(); });
+    el.appendChild(b);
+  });
+}
+function renderExtras(){
+  const el = document.getElementById('extras');
+  el.innerHTML = '';
+  const tagIcon = { clear: '☀️', rain: '🌧️', any: '🔁' };
+  const filtered = state.extraFilter === 'all' ? extras : extras.filter(x => x.weather === state.extraFilter);
+  filtered.forEach(x => {
+    const card = document.createElement('div'); card.className = 'xcard';
+    const top = document.createElement('div'); top.className = 'xtop';
+    const h4 = document.createElement('h4'); h4.textContent = x.name;
+    const tag = document.createElement('span'); tag.className = 'xtag'; tag.textContent = tagIcon[x.weather];
+    top.append(h4, tag);
+    const meta = document.createElement('div'); meta.className = 'xmeta'; meta.textContent = x.area;
+    const desc = document.createElement('div'); desc.className = 'xdesc'; desc.textContent = x.desc;
+    card.append(top, meta, desc);
+    el.appendChild(card);
+  });
+}
+
+/* ============ CHECKLIST ============ */
+function renderChecklist(){
+  const el = document.getElementById('checklist');
+  el.innerHTML = '';
+  const saved = safeGetJSON(STORAGE_KEYS.CHECKLIST) || {};
+  bookingList.forEach((item, i) => {
+    const li = document.createElement('li');
+    const input = document.createElement('input'); input.type = 'checkbox'; input.id = 'chk'+i;
+    input.checked = !!saved[i];
+    const label = document.createElement('label'); label.id = 'lbl'+i; label.htmlFor = 'chk'+i;
+    label.textContent = item;
+    if(input.checked) label.classList.add('done');
+    input.addEventListener('change', () => {
+      label.classList.toggle('done', input.checked);
+      const cur = safeGetJSON(STORAGE_KEYS.CHECKLIST) || {};
+      cur[i] = input.checked;
+      safeSetJSON(STORAGE_KEYS.CHECKLIST, cur);
+    });
+    li.append(input, label);
+    el.appendChild(li);
+  });
+}
+
+/* ============ RENDER ALL ============ */
+function renderAll(){
+  renderRibbon();
+  renderDays();
+  renderWhatNow();
+  renderFlightAlert();
+}
+
+/* ============ INIT: choose active day ============ */
+function pickInitialDay(){
+  const todayISO = todayISOInPrague();
+  const idxToday = days.findIndex(d => d.date === todayISO);
+  if(idxToday > -1) return idxToday;
+  const first = days[0].date, last = days[days.length-1].date;
+  if(todayISO < first){
+    const stored = safeGet(STORAGE_KEYS.LAST_DAY);
+    return stored !== null ? Math.min(Math.max(parseInt(stored,10)||0,0), days.length-1) : 0;
+  }
+  if(todayISO > last){
+    const stored = safeGet(STORAGE_KEYS.LAST_DAY);
+    return stored !== null ? Math.min(Math.max(parseInt(stored,10)||days.length-1,0), days.length-1) : days.length-1;
+  }
+  return 0;
+}
+
+/* ============ SERVICE WORKER + UPDATE BANNER ============ */
+function setupServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const installing = reg.installing;
+      if(!installing) return;
+      installing.addEventListener('statechange', () => {
+        if(installing.state === 'installed' && navigator.serviceWorker.controller){
+          document.getElementById('updateBanner').style.display = 'block';
+        }
+      });
+    });
+  }).catch(err => console.error('SW registration failed', err));
+
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  document.getElementById('updateReloadBtn').addEventListener('click', () => {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if(reg && reg.waiting){ reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
+    });
+  });
+}
+
+/* ============ WIRE UP + START ============ */
+document.getElementById('refreshBtn').addEventListener('click', () => loadWeather());
+
+state.activeDay = pickInitialDay();
+renderChecklist();
+renderFilterbar();
+renderExtras();
+renderAll();
+loadWeather();
+setupServiceWorker();
+setInterval(() => { renderWhatNow(); renderFlightAlert(); }, 60000);
+</script>
+
+</body>
+</html>
