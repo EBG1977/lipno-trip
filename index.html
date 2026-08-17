@@ -63,13 +63,6 @@
   .group-strip{margin-top:18px; display:flex; gap:8px; flex-wrap:wrap;}
   .pill{background:rgba(243,238,225,.12); border:1px solid rgba(243,238,225,.28); border-radius:999px; padding:6px 13px; font-size:13px;}
 
-  .update-banner{
-    background:var(--sun); color:#3a2508; text-align:center; padding:10px; font-size:13.5px; font-weight:700;
-    display:none;
-  }
-  .update-banner button{
-    margin-inline-start:10px; background:#3a2508; color:#fff; border:none; padding:5px 12px; border-radius:999px; cursor:pointer; font-weight:700; font-size:12.5px;
-  }
   .offline-banner{
     background:var(--rain-soft); color:var(--ink); text-align:center; padding:8px; font-size:13px; display:none;
   }
@@ -186,9 +179,6 @@
 </head>
 <body>
 
-<div class="update-banner" id="updateBanner" role="status">
-  עדכון חדש זמין <button id="updateReloadBtn" type="button">טען מחדש</button>
-</div>
 <div class="offline-banner" id="offlineBanner" role="status">אין חיבור — מוצגת התחזית האחרונה שנשמרה</div>
 
 <div class="hero">
@@ -1062,33 +1052,21 @@ function pickInitialDay(){
   return 0;
 }
 
-/* ============ SERVICE WORKER + UPDATE BANNER ============ */
+/* ============ SERVICE WORKER: AUTOMATIC UPDATES ============ */
 function setupServiceWorker(){
   if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('sw.js').then(reg => {
-    reg.addEventListener('updatefound', () => {
-      const installing = reg.installing;
-      if(!installing) return;
-      installing.addEventListener('statechange', () => {
-        if(installing.state === 'installed' && navigator.serviceWorker.controller){
-          document.getElementById('updateBanner').style.display = 'block';
-        }
-      });
-    });
-  }).catch(err => console.error('SW registration failed', err));
-
+  const hadController = Boolean(navigator.serviceWorker.controller);
   let refreshing = false;
+
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if(refreshing) return;
+    if(!hadController || refreshing) return;
     refreshing = true;
     window.location.reload();
   });
 
-  document.getElementById('updateReloadBtn').addEventListener('click', () => {
-    navigator.serviceWorker.getRegistration().then(reg => {
-      if(reg && reg.waiting){ reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
-    });
-  });
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+    .then(reg => reg.update().catch(() => {}))
+    .catch(err => console.error('SW registration failed', err));
 }
 
 /* ============ WIRE UP + START ============ */
