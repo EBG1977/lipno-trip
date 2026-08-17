@@ -112,8 +112,49 @@
   .weatherbox .wrow{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:4px;}
   .weatherbox .wchip{font-size:12px; color:var(--ink-soft);}
   .weatherbox .rec{font-weight:600; margin-top:4px;}
-  .windowchips{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
-  .windowchip{font-size:11px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 10px;}
+  .rain-summary{
+    margin-top:10px; padding:10px 12px; border-radius:8px; background:#fff;
+    border-right:4px solid var(--lake); font-size:13px;
+  }
+  .rain-summary strong{display:block; color:var(--lake-deep); margin-bottom:2px;}
+  .rain-summary.dry{border-right-color:#4D8B62; background:#F0F7F2;}
+  .rain-summary.low{border-right-color:#D0A13B; background:#FFF8E8;}
+  .rain-summary.medium{border-right-color:#CC7A32; background:#FFF0E4;}
+  .rain-summary.high{border-right-color:var(--rain); background:#EDF2F6;}
+  .rain-summary.storm{border-right-color:var(--storm); background:#F8E8E5;}
+  .activity-weather{display:grid; gap:7px; margin-top:9px;}
+  .activity-weather-card{
+    display:grid; grid-template-columns:minmax(120px,.8fr) minmax(0,2fr); gap:10px;
+    align-items:start; background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 10px;
+  }
+  .activity-weather-card .aw-title{font-weight:700; font-size:12px; color:var(--lake-deep);}
+  .activity-weather-card .aw-detail{font-size:12px; color:var(--ink-soft);}
+  .hourly-title{display:flex; justify-content:space-between; align-items:end; gap:8px; margin-top:13px; font-weight:700; font-size:13px;}
+  .hourly-title small{font-weight:400; color:var(--ink-soft); font-size:10.5px;}
+  .hourly-scroll{
+    overflow-x:auto; margin-top:7px; padding:1px 1px 8px; overscroll-behavior-inline:contain;
+    scrollbar-width:thin; -webkit-overflow-scrolling:touch; direction:ltr; scroll-snap-type:x proximity;
+  }
+  .hourly-strip{display:flex; gap:6px; width:max-content; direction:ltr;}
+  .hour-card{
+    width:82px; min-height:118px; flex:0 0 82px; background:#fff; border:1px solid var(--line);
+    border-top:5px solid #4D8B62; border-radius:9px; padding:6px 5px; text-align:center; direction:rtl;
+    scroll-snap-align:start;
+  }
+  .hour-card.low{border-top-color:#D0A13B; background:#FFFDF7;}
+  .hour-card.medium{border-top-color:#CC7A32; background:#FFF7F0;}
+  .hour-card.high{border-top-color:var(--rain); background:#F2F6F8;}
+  .hour-card.storm{border-top-color:var(--storm); background:#F9ECE9;}
+  .hour-card .hour{font-size:12px; font-weight:800; color:var(--lake-deep); direction:ltr;}
+  .hour-card .hicon{font-size:19px; line-height:1.35;}
+  .hour-card .htemp{font-size:12px; font-weight:700;}
+  .hour-card .hrain{font-size:11px; color:var(--ink); margin-top:2px;}
+  .hour-card .hmm,.hour-card .hwind{font-size:9.5px; color:var(--ink-soft);}
+  .rain-legend{font-size:10px; color:var(--ink-soft); margin-top:2px;}
+  @media(max-width:600px){
+    .activity-weather-card{grid-template-columns:1fr; gap:2px;}
+    .hour-card{width:78px; flex-basis:78px;}
+  }
 
   .toggle-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;}
   .toggle-row button{
@@ -679,6 +720,173 @@ function wmoIcon(code){
   return '🌤️';
 }
 
+/* ============ HOURLY RAIN TIMELINE ============ */
+const RAIN_WEATHER_CODES = [51,53,55,56,57,61,63,65,66,67,80,81,82];
+
+function forecastNumber(value, fallback){
+  if(value === null || value === undefined || value === '') return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function relevantRangeForDay(dayObj){
+  const windows = (dayObj.windows && dayObj.windows.length) ? dayObj.windows : [CONFIG.DEFAULT_WINDOW];
+  const starts = windows.map(w => hhmmToMinutes(w.start));
+  const ends = windows.map(w => hhmmToMinutes(w.end));
+  const startMin = Math.min(...starts);
+  const endMin = Math.max(...ends);
+  const toHHMM = (mins) => String(Math.floor(mins / 60)).padStart(2,'0') + ':' + String(mins % 60).padStart(2,'0');
+  return { start: toHHMM(startMin), end: toHHMM(endMin) };
+}
+
+function hourlyRecordsForRange(data, dayObj, startHHMM, endHHMM){
+  if(!data || !data.hourly) return [];
+  return hourlyIndicesForWindow(data, dayObj.date, startHHMM, endHHMM).map(i => {
+    const time = data.hourly.time[i].substring(11,16);
+    return {
+      time,
+      minute: hhmmToMinutes(time),
+      code: forecastNumber(data.hourly.weather_code && data.hourly.weather_code[i], 0),
+      temp: forecastNumber(data.hourly.temperature_2m && data.hourly.temperature_2m[i], null),
+      apparent: forecastNumber(data.hourly.apparent_temperature && data.hourly.apparent_temperature[i], null),
+      precipProb: forecastNumber(data.hourly.precipitation_probability && data.hourly.precipitation_probability[i], 0),
+      precipMm: forecastNumber(data.hourly.precipitation && data.hourly.precipitation[i], 0),
+      gust: forecastNumber(data.hourly.wind_gusts_10m && data.hourly.wind_gusts_10m[i], 0)
+    };
+  });
+}
+
+function hourlyRainSeverity(record){
+  if(CONFIG.THRESHOLDS.STORM_WEATHER_CODES.includes(record.code)) return 'storm';
+  if(record.precipProb >= 60 || record.precipMm >= 1) return 'high';
+  if(record.precipProb >= 40 || record.precipMm >= 0.2 || RAIN_WEATHER_CODES.includes(record.code)) return 'medium';
+  if(record.precipProb >= 20 || record.precipMm > 0) return 'low';
+  return 'dry';
+}
+
+function isRainWindowRecord(record){
+  return CONFIG.THRESHOLDS.STORM_WEATHER_CODES.includes(record.code) ||
+    RAIN_WEATHER_CODES.includes(record.code) || record.precipProb >= 40 || record.precipMm >= 0.1;
+}
+
+function addOneHour(hhmm){
+  const mins = hhmmToMinutes(hhmm) + 60;
+  if(mins >= 1440) return '24:00';
+  return String(Math.floor(mins / 60)).padStart(2,'0') + ':' + String(mins % 60).padStart(2,'0');
+}
+
+function rainRanges(records, endHHMM){
+  const wet = records.filter(isRainWindowRecord);
+  if(!wet.length) return [];
+  const groups = [];
+  let group = [wet[0]];
+  for(let i=1; i<wet.length; i++){
+    if(wet[i].minute - wet[i-1].minute <= 60) group.push(wet[i]);
+    else { groups.push(group); group = [wet[i]]; }
+  }
+  groups.push(group);
+  return groups.map(g => {
+    const rawEnd = addOneHour(g[g.length-1].time);
+    const cappedEnd = hhmmToMinutes(rawEnd) > hhmmToMinutes(endHHMM) ? endHHMM : rawEnd;
+    return g[0].time + '–' + cappedEnd;
+  });
+}
+
+function rainInsight(records, startHHMM, endHHMM){
+  if(!records.length){
+    return { level:'unknown', title:'אין עדיין תחזית לפי שעה', detail:'יש לבדוק שוב קרוב יותר למועד.' };
+  }
+  const peak = records.reduce((best, r) => r.precipProb > best.precipProb ? r : best, records[0]);
+  const maxSeverity = records.reduce((best, r) => {
+    const order = ['dry','low','medium','high','storm'];
+    return order.indexOf(hourlyRainSeverity(r)) > order.indexOf(best) ? hourlyRainSeverity(r) : best;
+  }, 'dry');
+  const ranges = rainRanges(records, endHHMM);
+  const totalMm = records.reduce((sum, r) => sum + Math.max(0, r.precipMm), 0);
+  const peakText = peak.precipProb > 0 ? ('שיא הסיכוי: ' + Math.round(peak.precipProb) + '% סביב ' + peak.time + '.') : '';
+  const amountText = totalMm >= 0.1 ? ('כמות משוערת בחלון: כ־' + (totalMm < 1 ? totalMm.toFixed(1) : totalMm.toFixed(1)) + ' מ״מ.') : '';
+
+  if(!ranges.length){
+    if(peak.precipProb >= 20){
+      return {
+        level:'low',
+        title:'רוב שעות הפעילות צפויות להיות יבשות',
+        detail:['קיים סיכוי נמוך לממטר נקודתי בין ' + startHHMM + ' ל־' + endHHMM + '.', peakText].filter(Boolean).join(' ')
+      };
+    }
+    return {
+      level:'dry',
+      title:'לא צפוי גשם משמעותי בשעות הפעילות',
+      detail:['החלון שנבדק: ' + startHHMM + '–' + endHHMM + '.', peakText].filter(Boolean).join(' ')
+    };
+  }
+
+  const rangeText = ranges.join(' וגם ');
+  const wetShare = records.filter(isRainWindowRecord).length / records.length;
+  const title = maxSeverity === 'storm' ? 'קיים סיכון לסופת רעמים' :
+    (wetShare >= 0.65 ? 'גשם אפשרי לאורך חלק גדול משעות הפעילות' : 'ממטרים אפשריים בעיקר בשעות המסומנות');
+  return {
+    level:maxSeverity,
+    title,
+    detail:['חלון הגשם המשוער: ' + rangeText + '.', peakText, amountText].filter(Boolean).join(' ')
+  };
+}
+
+function hourlyForecastEl(dayObj){
+  const range = relevantRangeForDay(dayObj);
+  const records = hourlyRecordsForRange(state.forecastData, dayObj, range.start, range.end);
+  const fragment = document.createDocumentFragment();
+  const insight = rainInsight(records, range.start, range.end);
+
+  const summary = document.createElement('div');
+  summary.className = 'rain-summary ' + insight.level;
+  const strong = document.createElement('strong'); strong.textContent = insight.title;
+  const detail = document.createElement('span'); detail.textContent = insight.detail;
+  summary.append(strong, detail);
+  fragment.appendChild(summary);
+
+  if(dayObj.windows && dayObj.windows.length && records.length){
+    const activityGrid = document.createElement('div'); activityGrid.className = 'activity-weather';
+    dayObj.windows.forEach(w => {
+      const wRecords = hourlyRecordsForRange(state.forecastData, dayObj, w.start, w.end);
+      const wInsight = rainInsight(wRecords, w.start, w.end);
+      const card = document.createElement('div'); card.className = 'activity-weather-card';
+      const title = document.createElement('div'); title.className = 'aw-title';
+      title.textContent = w.label + ' · ' + w.start + '–' + w.end;
+      const desc = document.createElement('div'); desc.className = 'aw-detail';
+      desc.textContent = wInsight.title + '. ' + wInsight.detail;
+      card.append(title, desc); activityGrid.appendChild(card);
+    });
+    fragment.appendChild(activityGrid);
+  }
+
+  if(records.length){
+    const title = document.createElement('div'); title.className = 'hourly-title';
+    const titleText = document.createElement('span'); titleText.textContent = 'תחזית לפי שעה';
+    const hint = document.createElement('small'); hint.textContent = 'החליקו לצדדים לצפייה בכל השעות';
+    title.append(titleText, hint); fragment.appendChild(title);
+
+    const scroll = document.createElement('div'); scroll.className = 'hourly-scroll';
+    scroll.setAttribute('aria-label', 'תחזית מזג אוויר לפי שעה');
+    const strip = document.createElement('div'); strip.className = 'hourly-strip';
+    records.forEach(r => {
+      const card = document.createElement('div'); card.className = 'hour-card ' + hourlyRainSeverity(r);
+      const hour = document.createElement('div'); hour.className = 'hour'; hour.textContent = r.time;
+      const icon = document.createElement('div'); icon.className = 'hicon'; icon.textContent = wmoIcon(r.code);
+      const temp = document.createElement('div'); temp.className = 'htemp'; temp.textContent = r.temp === null ? '—' : Math.round(r.temp) + '°';
+      const rain = document.createElement('div'); rain.className = 'hrain'; rain.textContent = 'גשם ' + Math.round(r.precipProb) + '%';
+      const mm = document.createElement('div'); mm.className = 'hmm'; mm.textContent = r.precipMm >= 0.05 ? r.precipMm.toFixed(1) + ' מ״מ' : '0 מ״מ';
+      const wind = document.createElement('div'); wind.className = 'hwind'; wind.textContent = 'משבים ' + Math.round(r.gust) + ' קמ״ש';
+      card.append(hour, icon, temp, rain, mm, wind); strip.appendChild(card);
+    });
+    scroll.appendChild(strip); fragment.appendChild(scroll);
+    const legend = document.createElement('div'); legend.className = 'rain-legend';
+    legend.textContent = 'ירוק: יבש · צהוב: סיכוי נמוך · כתום: ממטרים אפשריים · כחול: גשם סביר · אדום: סכנת סערה. השעה היא הערכה ולא התחייבות לזמן התחלה מדויק.';
+    fragment.appendChild(legend);
+  }
+  return fragment;
+}
+
 /* ============ EFFECTIVE STATE: manual override keeps the underlying auto stats ============
    Only the "state" field is replaced by the manual choice; tMin/tMax/precipProb/gust/
    confidence/daysAhead all still come from the real forecast, so the numbers shown
@@ -836,7 +1044,7 @@ function renderDays(){
     const s2 = document.createElement('span'); s2.className = 'wchip';
     s2.textContent = (eff.tMax !== undefined && eff.tMax !== null) ? ('טמפ׳: ' + Math.round(eff.tMin) + '°–' + Math.round(eff.tMax) + '°C') : 'טמפ׳: אין נתון';
     const s3 = document.createElement('span'); s3.className = 'wchip';
-    s3.textContent = (eff.precipProb !== undefined) ? ('סיכוי גשם (מקסימום בין החלונות): ' + Math.round(eff.precipProb) + '%') : '';
+    s3.textContent = (eff.precipProb !== undefined) ? ('שיא סיכוי הגשם בשעות הפעילות: ' + Math.round(eff.precipProb) + '%') : '';
     const s4 = document.createElement('span'); s4.className = 'wchip';
     s4.textContent = (eff.gust !== undefined) ? ('משבי רוח: עד ' + Math.round(eff.gust) + ' קמ״ש') : '';
     const s5 = document.createElement('span'); s5.className = 'wchip';
@@ -845,19 +1053,7 @@ function renderDays(){
     wbox.appendChild(wrow);
     const rec = document.createElement('div'); rec.className = 'rec'; rec.textContent = recommendationText(eff.state);
     wbox.appendChild(rec);
-
-    if(day.windows && day.windows.length){
-      const chips = document.createElement('div'); chips.className = 'windowchips';
-      day.windows.forEach((w, wi) => {
-        const weff = effectiveWindowState(day, wi);
-        const chip = document.createElement('span'); chip.className = 'windowchip';
-        const label = STATE_LABELS[weff.state] || '❓ לא ידוע';
-        const precipTxt = (weff.precipProb !== undefined && weff.state !== 'unknown') ? (' · ' + Math.round(weff.precipProb) + '% גשם') : '';
-        chip.textContent = w.label + ' (' + w.start + '–' + w.end + '): ' + label + precipTxt;
-        chips.appendChild(chip);
-      });
-      wbox.appendChild(chips);
-    }
+    wbox.appendChild(hourlyForecastEl(day));
     top.appendChild(wbox);
 
     const toggleRow = document.createElement('div'); toggleRow.className = 'toggle-row';
