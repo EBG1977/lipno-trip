@@ -103,9 +103,11 @@
 
   .daycard{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); margin-top:22px; overflow:hidden;}
   .daycard.is-today{border-color:var(--sun); box-shadow:0 0 0 2px var(--sun) inset;}
+  .daycard.is-completed{border-color:#72A27F;}
   .daytop{padding:20px 22px 14px; border-bottom:1px solid var(--line);}
   .daytop h2{font-size:21px; margin:0 0 4px;}
   .daytop .char{font-size:13px; color:var(--pine); font-weight:600;}
+  .completed-pill{display:inline-flex; align-items:center; gap:6px; margin-top:9px; padding:5px 12px; border-radius:999px; background:#E6F2E9; color:#245C35; border:1px solid #A9CDB2; font-size:12px; font-weight:800;}
   .weatherbox{
     margin-top:12px; background:#F6F2E7; border-radius:10px; padding:10px 14px; font-size:13px;
   }
@@ -224,7 +226,7 @@
 
 <div class="hero">
   <div class="wrap">
-    <div class="eyebrow">מסלול משפחתי · דרום צ׳כיה · גרסת PWA</div>
+    <div class="eyebrow">מסלול משפחתי · דרום צ׳כיה · גרסה 5 · עודכן 19.8</div>
     <h1>אגם ליפנו — מסלול דינמי לפי מזג אוויר</h1>
     <div class="sub">18–23 באוגוסט 2026 · תחזית חיה מ־Open-Meteo, מתעדכנת אוטומטית לפי שעות הפעילות בפועל של כל יום — כל חלון פעילות מסווג בנפרד.</div>
     <div class="group-strip">
@@ -252,7 +254,7 @@
   </div>
 
   <div class="ribbon-title">
-    <span>תחזית מזג אוויר חיה — Lipno nad Vltavou</span>
+    <span>תחזית מזג אוויר חיה לפי מיקום הפעילות — ליפנו / צ׳סקי קרומלוב</span>
     <button class="refresh-btn" id="refreshBtn" type="button">🔄 רענון תחזית</button>
   </div>
   <div class="ribbon" id="ribbon"></div>
@@ -272,9 +274,9 @@
   <div class="verify-title">נתונים שדורשים אימות אנושי</div>
   <ul class="verify-list">
     <li>שעות פתיחת Aquapalace Praha — מוצגות כאן 09:00–22:00 אך יש לאמת בקישור הרשמי לפני הנסיעה, שעות עשויות להשתנות לפי יום.</li>
-    <li>זמינות רפטינג/שיט בקרומלוב בפועל (ספק, שעה מדויקת, מדיניות ביטול בגשם) — לא קיים API, יש להתקשר/להזמין ידנית.</li>
-    <li>שעות פתיחה של Bikepark, פארק חבלים, Slideland, Aquaworld Lipno — משתנות לפי מזג אוויר ותחזוקה, לא מתעדכנות אוטומטית בכלי הזה.</li>
-    <li>תמחור דינמי וזמינות שביל צמרות העצים ביום שישי 21.8 בבוקר — לבדוק באתר הרשמי סמוך למועד.</li>
+    <li>זמינות רפטינג/שיט בקרומלוב למחר בבוקר (שעת יציאה, מספר סירות ומדיניות ביטול ברעמים) — יש לאשר ישירות מול הספק.</li>
+    <li>שעות פתיחה של Bikepark, פארק חבלים ו־Aquaworld Lipno — משתנות לפי מזג אוויר ותחזוקה, לא מתעדכנות אוטומטית בכלי הזה.</li>
+    <li>מזחלות ההרים, שביל צמרות העצים וממלכת היער כבר בוצעו ב־19.8 ואינם מופיעים שוב בהמשך המסלול.</li>
     <li>זמני נסיעה בפועל (פקקים, חניה) — מומלץ Waze/Google Maps בזמן אמת, במיוחד ב־23.8.</li>
     <li>תדלוק והחזרת רכב שכור לפני הטיסות ב־23.8 — לא נכלל בחישוב הזמנים כאן, יש להוסיף בעצמכם.</li>
   </ul>
@@ -291,6 +293,7 @@
 /* ============ CONFIG ============ */
 const CONFIG = {
   LOCATION: { lat: 48.6393, lon: 14.2293, name: "Lipno nad Vltavou" },
+  KRUMLOV_LOCATION: { lat: 48.8127, lon: 14.3175, name: "Český Krumlov" },
   TIMEZONE: "Europe/Prague",
   FORECAST_DAYS: 16,
   THRESHOLDS: {
@@ -309,7 +312,9 @@ const STORAGE_KEYS = {
   LAST_DAY: 'lipno_lastday_v1',
   MANUAL_WEATHER: 'lipno_manualweather_v1',
   FORECAST_CACHE: 'lipno_forecast_v1',
-  FORECAST_TIME: 'lipno_forecast_time_v1'
+  FORECAST_TIME: 'lipno_forecast_time_v1',
+  KRUMLOV_FORECAST_CACHE: 'krumlov_forecast_v1',
+  KRUMLOV_FORECAST_TIME: 'krumlov_forecast_time_v1'
 };
 
 const STATE_LABELS = {
@@ -356,98 +361,86 @@ const days = [
     links: [{ type: "nav", label: "ניווט למרינה", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Lipno nad Vltavou marina") }]
   },
   {
-    id: 1, date: "2026-08-19", dateLabel: "19.8, רביעי", title: "צ׳סקי קרומלוב, רפטינג — הטירה היחידה במסלול", character: "עיר עתיקה ואקשן",
+    id: 1, date: "2026-08-19", dateLabel: "19.8, רביעי", title: "בוצע: מזחלות ההרים, שביל הצמרות וממלכת היער", character: "✅ היום הושלם בפועל",
+    completed: true,
     fixed: [
-      { start: "10:00", end: "10:40", label: "יציאה", text: "יציאה מהמלון (לפי הכלל של לא לפני 10:00)." },
-      { start: "10:40", end: "11:15", label: "הגעה וחניה", text: "הגעה לצ׳סקי קרומלוב, חניה והליכה למרכז — עם קבוצה של 16 יש לתכנן כ־20–30 דקות נוספות לחניה והליכה." },
-      { start: "13:15", end: "14:30", label: "צהריים", text: "ארוחת צהריים — חובה הזמנת מקום מראש לקבוצה של 16." },
-      { start: "17:45", end: "18:30", label: "יציאה", text: "יציאה חזרה לליפנו." }
+      { start: "10:00", timeLabel: "תחילה", label: "מזחלות ההרים — בוצע", text: "התחלתם ב־Slideland ליד המלון." },
+      { start: "12:00", timeLabel: "אחר כך", label: "שביל צמרות העצים — בוצע", text: "עליתם לשביל הצמרות ולתצפית." },
+      { start: "14:00", timeLabel: "בהמשך", label: "ממלכת היער — בוצע", text: "סיימתם בממלכת הילדים/ממלכת היער למעלה." }
+    ],
+    windows: [],
+    note: "עודכן בדיעבד לפי מה שבוצע בפועל. השעות אינן מוצגות כתיעוד מדויק — הסדר הוא מזחלות, שביל הצמרות ואז ממלכת היער.",
+    links: [
+      { type: "official", label: "מזחלות Slideland", url: "https://www.slideland.cz/en/" },
+      { type: "official", label: "שביל צמרות העצים", url: "https://www.lipno.info/zazitky/stezka-korunami-stromu-lipno.html" },
+      { type: "official", label: "ממלכת היער", url: "https://www.lipno.info/zazitky/kralovstvi-lesa.html" }
+    ]
+  },
+  {
+    id: 2, date: "2026-08-20", dateLabel: "20.8, חמישי", title: "צ׳סקי קרומלוב ורפטינג", character: "רפטינג מוקדם, עיר וטירה אחר כך",
+    weatherKey: "krumlov",
+    fixed: [
+      { start: "09:30", end: "10:15", label: "יציאה", text: "יציאה מ־Hotel Element לכיוון צ׳סקי קרומלוב. היציאה מוקדמת מהרגיל כדי להקדים את חלון הגשם של אחר הצהריים." },
+      { start: "10:15", end: "10:45", label: "הגעה והתארגנות", text: "חניה, הגעה לבסיס השיט וקבלת ציוד. יש לאשר מראש את שעת היציאה עם הספק." },
+      { start: "13:15", end: "14:15", label: "צהריים", text: "ארוחת צהריים בעיר — לקבוצה גדולה מומלץ לוודא מקום מראש." },
+      { start: "16:30", end: "17:15", label: "חזרה", text: "יציאה חזרה לליפנו. אם הגשם מתחיל קודם, מקצרים את הביקור בעיר." }
     ],
     windows: [
-      { label: "טירה ועיר עתיקה", start: "11:15", end: "14:30", byState: {
-        clear: [{ start: "11:15", end: "13:00", label: "טירה ועיר עתיקה", text: "ביקור בטירה ובעיר העתיקה — הטירה היחידה בכל המסלול, אפשר לתת לה זמן איכות. שתי אפשרויות מקבילות באותה שעה: (1) סיור פנים בטירה, (2) מגדל הטירה + רחובות Latrán + גלידה." }],
-        mixed: [{ start: "11:15", end: "13:00", label: "טירה ועיר עתיקה", text: "כרגיל — אזורי החוץ בטירה בסדר גם במעונן." }],
-        rain: [{ start: "11:15", end: "13:00", label: "חלופה מקורה", text: "מכרה הגרפיט (70–90 דק׳, להזמין מראש), Fotoatelier Seidel, Film Legends Museum, מוזיאון המולדבייט, Port 1560 — כולם מקורים במרכז העיר." }],
-        wind: [{ start: "11:15", end: "13:00", label: "טירה ועיר עתיקה", text: "רוח בדרך כלל לא משפיעה על סיור בעיר." }],
-        storm: [{ start: "11:15", end: "13:00", label: "טירה ועיר עתיקה", text: "להעדיף את אזורי הפנים המקורים בטירה ובעיר." }]
+      { label: "רפטינג/שיט", start: "10:45", end: "13:15", byState: {
+        clear: [{ start: "10:45", end: "13:15", label: "רפטינג/שיט", text: "מסלול עירוני קל של כ־2–4 ק״מ וכשעתיים, כולל מפלים/סכרים נמוכים ונוף לעיר העתיקה." }],
+        mixed: [{ start: "10:45", end: "13:15", label: "רפטינג/שיט", text: "ממטר קל אינו בהכרח מבטל את השיט, אבל יש לקבל אישור מהספק לפני היציאה וללבוש בגדים שמתייבשים מהר." }],
+        rain: [{ start: "10:45", end: "13:15", label: "בדיקת שיט", text: "אם יורד גשם רציף או שמפלס/זרימת הנהר אינם מתאימים, לא יוצאים בלי אישור מפורש מהמפעיל." }],
+        wind: [{ start: "10:45", end: "13:15", label: "בדיקת שיט", text: "לוודא עם הספק שהשיט מתקיים כרגיל ולפעול לפי הנחיות הצוות." }],
+        storm: [{ start: "10:45", end: "13:15", label: "לא יוצאים למים", text: "ברעמים או ברקים מבטלים/דוחים את השיט ועוברים לטירה, למוזיאון או למכרה הגרפיט." }]
       }},
-      { label: "רפטינג/שיט", start: "15:00", end: "17:30", byState: {
-        clear: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "רפטינג/שיט עירוני על הוולטאבה (2–4 ק״מ), יוצא ונגמר בתוך העיר — בלי נסיעה נוספת." }],
-        mixed: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "לרוב ממשיך לפעול בגשם קל-בינוני — לוודא עם הספק בבוקר." }],
-        rain: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "עלול להצטמצם או להתבטל בגשם חזק — לוודא עם הספק לפני היציאה מהמלון." }],
-        wind: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "רוח חזקה עשויה להשפיע על שיט קל — לבדוק עם הספק אם יש הגבלה מיוחדת." }],
-        storm: [{ start: "15:00", end: "17:30", label: "רפטינג/שיט", text: "יבוטל ברוב המקרים בסופת רעמים — לעבור לחלופות המקורות בעיר." }]
+      { label: "העיר העתיקה והטירה", start: "14:15", end: "16:30", byState: {
+        clear: [{ start: "14:15", end: "16:30", label: "העיר והטירה", text: "סיור בעיר העתיקה ובמתחם הטירה. אפשר להתפצל: סיור פנים למעוניינים, ומגדל/חצרות/רחובות Latrán עם הילדים." }],
+        mixed: [{ start: "14:15", end: "16:30", label: "העיר והטירה", text: "מתחילים בחצרות ובתצפיות, ונשארים קרובים לאפשרויות מקורות אם מגיע ממטר." }],
+        rain: [{ start: "14:15", end: "16:30", label: "מסלול מקורה", text: "להעדיף סיור פנים בטירה, Fotoatelier Seidel, Port 1560, מוזיאון המולדבייט או מכרה הגרפיט אם הוזמן מראש." }],
+        wind: [{ start: "14:15", end: "16:30", label: "העיר והטירה", text: "רוח אינה בעיה ברוב הרחובות; להימנע משהייה ממושכת בנקודות תצפית חשופות." }],
+        storm: [{ start: "14:15", end: "16:30", label: "עוברים פנימה", text: "ברעמים נשארים במבנה סגור ומוותרים על המגדל, הגנים ונקודות התצפית החשופות." }]
       }}
     ],
-    note: "אם יוצאים ב־10:00, עם חניה והליכה למרכז לקבוצה של 16, תחילת הביקור בפועל בטירה תהיה כ־11:15–11:30 — לא 11:00, אלא אם הוזמן כרטיס לשעה קבועה מראש. נדרש אישור מראש להשתתפות הילדה בת 4 ברפטינג.",
-    booking: "להזמין: רפטינג/שיט ~15:00 + מסעדה ל־16 סועדים",
+    note: "הסדר שונה בכוונה: הרפטינג מוקדם והעיר אחריו. התחזית העדכנית מצביעה על עלייה בסיכון לממטרים ולרעמים לקראת 16:00–17:00. התחזית ביום זה נשלפת במיוחד עבור צ׳סקי קרומלוב ולא עבור ליפנו. אם הספק מציע רק יציאה אחר הצהריים — יש לבדוק מכ״ם ולקבל ממנו אישור מפורש לפני הכניסה למים. נדרש אישור מראש להשתתפות הילדה בת 4.",
+    booking: "דחוף לאשר: רפטינג בסביבות 10:45–11:00 + מקום לצהריים",
     links: [
+      { type: "official", label: "מידע רשמי על השיט", url: "https://www.ckrumlov.info/en/hikingtrails-171-boating-through-krumlov/" },
+      { type: "official", label: "Rafting Krumlov", url: "https://www.rafting-krumlov.cz/" },
       { type: "official", label: "שעות הטירה", url: "https://www.zamek-ceskykrumlov.cz/en/plan-your-visit/opening-hours" },
-      { type: "official", label: "שעות אתרים 2026", url: "https://www.ckrumlov.info/en/opening-hours-of-monuments-museums-and-galleries-2026/" },
-      { type: "official", label: "מידע על מסלול השיט", url: "https://www.ckrumlov.info/en/hikingtrails-171-boating-through-krumlov/" },
+      { type: "nav", label: "ניווט לבסיס Havana", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Rafting Krumlov Havana Pod Svatym Duchem 271") },
       { type: "nav", label: "ניווט לטירה", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Cesky Krumlov Castle") }
     ]
   },
   {
-    id: 2, date: "2026-08-20", dateLabel: "20.8, חמישי", title: "יום האגם: חצי יום אופניים ומים", character: "יום אגם גמיש — בלי פעילות ערב בגובה",
+    id: 3, date: "2026-08-21", dateLabel: "21.8, שישי", title: "אופניים בבוקר ואגם/חלופה מקורה אחר הצהריים", character: "יום ליפנו גמיש לפי הגשם",
     fixed: [
-      { start: "10:00", end: "10:30", label: "איסוף אופניים", text: "רגילים למתבגרים, חשמליים למי שרוצה, נגרר/כיסא לילדה בת 4, קסדות לכולם." },
-      { start: "13:00", end: "14:00", label: "צהריים", text: "ארוחת צהריים בפרימבורק או לאחר החזרה לליפנו, בהתאם לאורך הרכיבה." },
-      { start: "15:30", end: "16:00", label: "סיום פעילות החוץ", text: "החזרת ציוד וחזרה למלון לפני שהסיכון לממטרים ולרעמים עולה." },
-      { start: "18:30", end: "20:00", label: "ערב רגוע", text: "ארוחת ערב ומנוחה. אין עלייה לשביל צמרות העצים בחמישי בערב." }
+      { start: "09:30", end: "10:00", label: "איסוף אופניים", text: "רגילים למתבגרים, חשמליים למי שרוצה, נגרר/כיסא לילדה בת 4 וקסדות לכולם." },
+      { start: "13:00", end: "14:00", label: "צהריים", text: "ארוחת צהריים בפרימבורק או לאחר החזרה לליפנו, בהתאם למזג האוויר ולקצב הקבוצה." },
+      { start: "17:30", end: "19:00", label: "ערב", text: "חזרה למלון, מנוחה וארוחת ערב." }
     ],
     windows: [
-      { label: "אופניים", start: "10:00", end: "14:00", byState: {
-        clear: [{ start: "10:30", end: "13:00", label: "אופניים", text: "רכיבה משפחתית לפרימבורק ובחזרה — כ־17 ק״מ הלוך-חזור בסך הכול (המעבורת המקומית חוצה לכיוון Frýdava בלבד ואינה מחזירה לליפנו, לכן אין אפשרות לחזור בה). שלוש אופציות: (1) רכיבה מלאה הלוך-חזור, (2) קיצור המסלול וסיבוב חזרה מנקודת ביניים, (3) תיאום מראש רכב איסוף/ליווי בפרימבורק למי שלא רוצה לרכוב את כל הדרך חזרה." }],
-        mixed: [{ start: "10:30", end: "12:30", label: "אופניים", text: "לצאת לרכיבה אך לקצר את המסלול אם מתחיל לרדת גשם — לסובב חזרה מנקודת ביניים." }],
-        rain: [{ start: "10:30", end: "12:00", label: "אופניים", text: "לשקול לוותר על הרכיבה או לקצר משמעותית." }],
-        wind: [{ start: "10:30", end: "13:00", label: "אופניים", text: "רכיבה בדרך כלל בסדר ברוח רגילה." }],
-        storm: [{ start: "10:30", end: "13:00", label: "אופניים", text: "להימנע מרכיבה בזמן סופת רעמים; להמתין שתעבור." }]
+      { label: "אופניים", start: "09:30", end: "13:30", byState: {
+        clear: [{ start: "10:00", end: "13:00", label: "אופניים", text: "רכיבה משפחתית לכיוון פרימבורק ובחזרה — עד כ־17 ק״מ הלוך־חזור. אפשר לקצר ולחזור מנקודת ביניים." }],
+        mixed: [{ start: "10:00", end: "12:30", label: "אופניים מקוצרים", text: "לצאת מוקדם, לבחור מסלול קצר ולהסתובב חזרה ברגע שמתחיל ממטר." }],
+        rain: [{ start: "09:30", end: "13:30", label: "החלטה בבוקר", text: "אם הכביש/השביל רטובים מאוד או שיורד גשם רציף, מוותרים על הרכיבה ועוברים ל־Aquaworld או Sport Arena." }],
+        wind: [{ start: "10:00", end: "12:30", label: "אופניים מקוצרים", text: "רכיבה אפשרית ברוח מתונה; שומרים מרחק ומקצרים אם המשבים מתחזקים." }],
+        storm: [{ start: "09:30", end: "13:30", label: "לא רוכבים", text: "ברעמים או ברקים לא יוצאים לרכיבה ועוברים לחלופה מקורה." }]
       }},
-      { label: "פעילויות אגם", start: "14:00", end: "15:30", byState: {
-        clear: [{ start: "14:00", end: "15:30", label: "אחה״צ", text: "זמן קצר וגמיש באזור האגם/מרינה: סאפ, קיאקים, חוף או פסטיבל הספורט." }],
-        mixed: [{ start: "14:00", end: "15:30", label: "אחה״צ", text: "להישאר קרובים למרינה: אם יבש — פעילות קצרה; אם מתפתח ממטר — לעבור מיד לחלופה מקורה." }],
-        rain: [{ start: "14:00", end: "15:30", label: "חלופה מקורה", text: "Aquaworld Lipno, Czech Repubrick או Papilonia." }],
-        wind: [{ start: "14:00", end: "15:30", label: "אחה״צ", text: "סאפ וקיאקים עלולים להיות מוגבלים ברוח — לעבור לחוף, לפסטיבל או למנוחה." }],
-        storm: [{ start: "14:00", end: "15:30", label: "חלופה מקורה", text: "להפסיק מיד פעילות מים ולעבור למקום מקורה." }]
+      { label: "אגם / חלופה מקורה", start: "14:00", end: "17:30", byState: {
+        clear: [{ start: "14:00", end: "17:30", label: "אזור האגם", text: "סאפ, קיאקים, חוף, פסטיבל הספורט או פעילות קצרה אחרת באזור המרינה." }],
+        mixed: [{ start: "14:00", end: "17:30", label: "נשארים גמישים", text: "מתחילים קרוב למרינה; אם מגיע ממטר עוברים מיד ל־Aquaworld, Sport Arena, Czech Repubrick או Papilonia." }],
+        rain: [{ start: "14:00", end: "17:30", label: "אחר צהריים מקורה", text: "Aquaworld Lipno או Sport Arena הם החלופות המרכזיות; לילדים הצעירים אפשר להוסיף Czech Repubrick או Papilonia." }],
+        wind: [{ start: "14:00", end: "17:30", label: "ללא סאפ וקיאקים", text: "אם הרוח מגבילה פעילות מים, עוברים לפסטיבל, Sport Arena או פעילות קרקעית." }],
+        storm: [{ start: "14:00", end: "17:30", label: "עוברים פנימה", text: "מפסיקים פעילות מים ונשארים במתחם מקורה עד שהסערה חולפת." }]
       }}
     ],
-    note: "שביל צמרות העצים הוסר מחמישי בערב בגלל הסיכון לממטרים ולרעמים והועבר לשישי בבוקר. ביום חמישי מתמקדים באופניים ובחלון אגם קצר, ומסיימים את פעילות החוץ עד 15:30–16:00.",
-    booking: "להזמין: אופניים/חשמליים/נגרר ל־16",
+    note: "יום האופניים הועבר לכאן לאחר שפעילויות ההר שתוכננו לשישי בוצעו כבר ברביעי. לפי התחזית הנוכחית, הסיכוי לגשם גדל אחר הצהריים — לכן הרכיבה קודמת וכל המשך היום נשאר גמיש.",
+    booking: "אם רוכבים: להזמין אופניים/חשמליים/נגרר ל־21.8 בבוקר",
     links: [
+      { type: "official", label: "פעילויות והשכרת אופניים", url: "https://lipno.amenity.cz/en/activities/" },
+      { type: "official", label: "Sport Arena Lipno", url: "https://lipno.amenity.cz/sport-arena-lipno/" },
       { type: "official", label: "לוח פסטיבל הספורט", url: "https://www.lipnosportfestival.cz/program/" },
       { type: "nav", label: "ניווט לפרימבורק", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Frymburk Czechia") }
-    ]
-  },
-  {
-    id: 3, date: "2026-08-21", dateLabel: "21.8, שישי", title: "שביל צמרות העצים ויום ההר המקומי", character: "תצפית בבוקר ואקסטרים בהמשך",
-    fixed: [
-      { start: "09:45", end: "10:00", label: "התכנסות", text: "התכנסות באזור הרכבל/ההסעה. הפעילות עצמה מתחילה ב־10:00." },
-      { start: "11:30", end: "12:15", label: "צהריים מוקדמים", text: "ארוחה קלה משותפת לפני הפיצול לפעילויות ההר." }
-    ],
-    windows: [
-      { label: "שביל צמרות העצים", start: "10:00", end: "11:30", byState: {
-        clear: [{ start: "10:00", end: "11:30", label: "שביל צמרות העצים", text: "ביקור לכל הקבוצה בשעות הבוקר, לפני שהסיכון לממטרים עולה. העלייה והתצפית נמשכות בדרך כלל כשעה עד שעה וחצי." }],
-        mixed: [{ start: "10:00", end: "11:30", label: "שביל צמרות העצים", text: "אפשרי בעננות ובטפטוף קל, אך לבדוק מכ״ם, רוח והודעת מפעיל לפני העלייה." }],
-        rain: [{ start: "10:00", end: "11:30", label: "בדיקה לפני עלייה", text: "בגשם רציף עדיף לדחות או לעבור ל־Aquaworld, Czech Repubrick או Papilonia." }],
-        wind: [{ start: "10:00", end: "11:30", label: "בדיקת רוח", text: "אטרקציה חיצונית בגובה — יש לוודא שהשביל והרכבל פועלים ללא מגבלות." }],
-        storm: [{ start: "10:00", end: "11:30", label: "לא עולים", text: "בסופת רעמים או בהתראה פעילה לא עולים לשביל; עוברים לחלופה מקורה." }]
-      }},
-      { label: "Bikepark / פארק חבלים", start: "12:15", end: "17:30", byState: {
-        clear: [{ start: "12:15", end: "17:30", label: "אפשרויות מקבילות", text: "פיצול לפי טעם: Bikepark, פארק חבלים, Slideland ופעילויות הפסטיבל למתבגרים ולמבוגרים; Království lesa — ממלכת היער לילדות הצעירות עם מלווה. לבחור לכל היותר שתי פעילויות." }],
-        mixed: [{ start: "12:15", end: "17:30", label: "אפשרויות מקבילות", text: "מתחילים בפעילות החוץ החשובה ביותר ובודקים שעה-שעה מה פתוח; אם מגיע ממטר עוברים למנוחה או לחלופה מקורה." }],
-        rain: [{ start: "12:15", end: "17:30", label: "חלופה מקורה", text: "Bikepark, פארק החבלים ו־Slideland עשויים להיסגר או להיות מוגבלים. חלופה: Aquaworld Lipno, Czech Repubrick או Papilonia." }],
-        wind: [{ start: "12:15", end: "17:30", label: "אפשרויות מוגבלות", text: "חבלים וזיפליין עלולים להיעצר ברוח חזקה. לבחור Slideland, ממלכת היער או פעילות קרקעית בהתאם להנחיות." }],
-        storm: [{ start: "12:15", end: "17:30", label: "חלופה מקורה", text: "כל פעילויות הגובה החיצוניות נעצרות בסופת רעמים. עוברים לחלופות המקורות." }]
-      }}
-    ],
-    note: "שביל צמרות העצים הועבר לכאן מחמישי בערב ונקבע כפעילות הראשונה, משום שבשישי הסיכון לממטרים עולה בעיקר בהמשך היום. אם מתחיל גשם אחר הצהריים, מסיימים את פעילויות ההר מוקדם ועוברים לחלופה מקורה.",
-    booking: "להזמין: כרטיסים לשביל צמרות העצים ל־21.8 בבוקר + ציוד Bikepark ומגן למשתתפים",
-    links: [
-      { type: "official", label: "שביל צמרות העצים", url: "https://www.lipno.info/zazitky/stezka-korunami-stromu-lipno.html" },
-      { type: "official", label: "פעילויות ושבילי אופניים בליפנו", url: "https://lipno.amenity.cz/en/activities/" },
-      { type: "nav", label: "ניווט לרכבל", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Lipno cable car lanovka") },
-      { type: "nav", label: "ניווט ל־Bikepark", url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Bikepark Lipno") }
     ]
   },
   {
@@ -525,11 +518,9 @@ const extras = [
 ];
 
 const bookingList = [
-  "רפטינג/שיט בצ׳סקי קרומלוב — 19.8 בשעה 15:00 לערך, ל־16 איש",
-  "מסעדה בצ׳סקי קרומלוב ל־16 סועדים",
-  "כרטיסים לשביל צמרות העצים — 21.8 בבוקר, תמחור דינמי באתר",
-  "אופניים, אופניים חשמליים ונגרר לילד — 20.8",
-  "ציוד Bikepark ומגן — 21.8",
+  "דחוף: רפטינג/שיט בצ׳סקי קרומלוב — 20.8 בסביבות 10:45–11:00, ל־16 איש",
+  "מסעדה בצ׳סקי קרומלוב — 20.8 בצהריים, ל־16 סועדים",
+  "אופניים, אופניים חשמליים ונגרר לילד — 21.8 בבוקר, רק אם התחזית מאפשרת",
   "ארוחת פרידה ב־22.8 בצהריים למשפחת ה־5 היוצאת",
   "ארוחת ערב משפחתית אחרונה ב־22.8 (ל־11 הנשארים)",
   "כרטיסי Aquapalace Praha ל־23.8 — מומלץ מראש, במיוחד בסופ״ש",
@@ -541,7 +532,9 @@ const bookingList = [
 const state = {
   activeDay: 0,
   forecastData: null,
+  krumlovForecastData: null,
   forecastTime: null,
+  krumlovForecastTime: null,
   offline: false,
   loading: false,
   manualWeather: safeGetJSON(STORAGE_KEYS.MANUAL_WEATHER) || {},
@@ -572,10 +565,10 @@ function daysBetween(isoA, isoB){
 }
 
 /* ============ WEATHER FETCH ============ */
-async function fetchForecast(){
+async function fetchForecast(location){
   const params = new URLSearchParams({
-    latitude: CONFIG.LOCATION.lat,
-    longitude: CONFIG.LOCATION.lon,
+    latitude: location.lat,
+    longitude: location.lon,
     timezone: CONFIG.TIMEZONE,
     forecast_days: CONFIG.FORECAST_DAYS,
     daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset",
@@ -590,20 +583,39 @@ async function fetchForecast(){
 async function loadWeather(){
   const cached = safeGetJSON(STORAGE_KEYS.FORECAST_CACHE);
   const cachedTime = safeGet(STORAGE_KEYS.FORECAST_TIME);
+  const cachedKrumlov = safeGetJSON(STORAGE_KEYS.KRUMLOV_FORECAST_CACHE);
+  const cachedKrumlovTime = safeGet(STORAGE_KEYS.KRUMLOV_FORECAST_TIME);
   if(cached && !state.forecastData){
     state.forecastData = cached;
     state.forecastTime = cachedTime;
-    renderAll();
   }
+  if(cachedKrumlov && !state.krumlovForecastData){
+    state.krumlovForecastData = cachedKrumlov;
+    state.krumlovForecastTime = cachedKrumlovTime;
+  }
+  if(state.forecastData || state.krumlovForecastData) renderAll();
   state.loading = true;
   updateRefreshBtn();
   try{
-    const fresh = await fetchForecast();
-    state.forecastData = fresh;
-    state.forecastTime = new Date().toISOString();
-    safeSetJSON(STORAGE_KEYS.FORECAST_CACHE, fresh);
-    safeSet(STORAGE_KEYS.FORECAST_TIME, state.forecastTime);
-    state.offline = false;
+    const results = await Promise.allSettled([
+      fetchForecast(CONFIG.LOCATION),
+      fetchForecast(CONFIG.KRUMLOV_LOCATION)
+    ]);
+    const fetchedAt = new Date().toISOString();
+    if(results[0].status === 'fulfilled'){
+      state.forecastData = results[0].value;
+      state.forecastTime = fetchedAt;
+      safeSetJSON(STORAGE_KEYS.FORECAST_CACHE, state.forecastData);
+      safeSet(STORAGE_KEYS.FORECAST_TIME, state.forecastTime);
+    }
+    if(results[1].status === 'fulfilled'){
+      state.krumlovForecastData = results[1].value;
+      state.krumlovForecastTime = fetchedAt;
+      safeSetJSON(STORAGE_KEYS.KRUMLOV_FORECAST_CACHE, state.krumlovForecastData);
+      safeSet(STORAGE_KEYS.KRUMLOV_FORECAST_TIME, state.krumlovForecastTime);
+    }
+    state.offline = results.every(r => r.status === 'rejected');
+    if(state.offline) throw new Error('All weather requests failed');
   }catch(err){
     console.error('Weather fetch failed', err);
     state.offline = true;
@@ -612,6 +624,14 @@ async function loadWeather(){
     updateRefreshBtn();
     renderAll();
   }
+}
+
+function weatherDataForDay(dayObj){
+  return dayObj.weatherKey === 'krumlov' ? state.krumlovForecastData : state.forecastData;
+}
+
+function weatherLocationName(dayObj){
+  return dayObj.weatherKey === 'krumlov' ? CONFIG.KRUMLOV_LOCATION.name : CONFIG.LOCATION.name;
 }
 
 /* ============ WEATHER CLASSIFICATION ============ */
@@ -834,7 +854,8 @@ function rainInsight(records, startHHMM, endHHMM){
 
 function hourlyForecastEl(dayObj){
   const range = relevantRangeForDay(dayObj);
-  const records = hourlyRecordsForRange(state.forecastData, dayObj, range.start, range.end);
+  const weatherData = weatherDataForDay(dayObj);
+  const records = hourlyRecordsForRange(weatherData, dayObj, range.start, range.end);
   const fragment = document.createDocumentFragment();
   const insight = rainInsight(records, range.start, range.end);
 
@@ -848,7 +869,7 @@ function hourlyForecastEl(dayObj){
   if(dayObj.windows && dayObj.windows.length && records.length){
     const activityGrid = document.createElement('div'); activityGrid.className = 'activity-weather';
     dayObj.windows.forEach(w => {
-      const wRecords = hourlyRecordsForRange(state.forecastData, dayObj, w.start, w.end);
+      const wRecords = hourlyRecordsForRange(weatherData, dayObj, w.start, w.end);
       const wInsight = rainInsight(wRecords, w.start, w.end);
       const card = document.createElement('div'); card.className = 'activity-weather-card';
       const title = document.createElement('div'); title.className = 'aw-title';
@@ -892,7 +913,7 @@ function hourlyForecastEl(dayObj){
    confidence/daysAhead all still come from the real forecast, so the numbers shown
    stay honest even while a manual weather mode is active. */
 function effectiveState(dayObj){
-  const auto = classifyDay(state.forecastData, dayObj);
+  const auto = classifyDay(weatherDataForDay(dayObj), dayObj);
   const manual = state.manualWeather[dayObj.id];
   if(manual && manual !== 'auto'){
     return Object.assign({}, auto, { state: manual, manual: true });
@@ -901,7 +922,7 @@ function effectiveState(dayObj){
 }
 function effectiveWindowState(dayObj, windowIndex){
   const w = dayObj.windows[windowIndex];
-  const auto = classifyWindowFull(state.forecastData, dayObj, w);
+  const auto = classifyWindowFull(weatherDataForDay(dayObj), dayObj, w);
   const manual = state.manualWeather[dayObj.id];
   if(manual && manual !== 'auto'){
     return Object.assign({}, auto, { state: manual, manual: true });
@@ -957,7 +978,7 @@ function renderForecastNote(){
   } else {
     parts.push('טרם נטענה תחזית.');
   }
-  parts.push('מקור: Open-Meteo. מעבר לטווח 16 הימים תוצג \"טרם זמין\".');
+  parts.push('מקור: Open-Meteo. 20.8 נשלף עבור צ׳סקי קרומלוב; שאר הימים עבור ליפנו. מעבר לטווח 16 הימים תוצג \"טרם זמין\".');
   el.textContent = parts.join(' · ');
 }
 
@@ -967,6 +988,7 @@ function renderRibbon(){
   el.innerHTML = '';
   days.forEach((day, i) => {
     const eff = effectiveState(day);
+    const weatherData = weatherDataForDay(day);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'rcard' + (i === state.activeDay ? ' active' : '') + (eff.state === 'unknown' ? ' state-unknown' : '');
@@ -976,16 +998,16 @@ function renderRibbon(){
     const dEl = document.createElement('div'); dEl.className = 'd'; dEl.textContent = day.dateLabel.split(', ')[1] || '';
     const dateEl = document.createElement('div'); dateEl.className = 'date'; dateEl.textContent = day.dateLabel.split(',')[0];
     const iconEl = document.createElement('div'); iconEl.className = 'icon';
-    let iconChar = '❓';
-    if(eff.state !== 'unknown'){
-      const dailyIdx = findDailyIndex(state.forecastData, day.date);
-      iconChar = (dailyIdx > -1 && state.forecastData.daily.weather_code) ? wmoIcon(state.forecastData.daily.weather_code[dailyIdx]) : (STATE_LABELS[eff.state]||'').split(' ')[0];
+    let iconChar = day.completed ? '✅' : '❓';
+    if(!day.completed && eff.state !== 'unknown'){
+      const dailyIdx = findDailyIndex(weatherData, day.date);
+      iconChar = (dailyIdx > -1 && weatherData && weatherData.daily.weather_code) ? wmoIcon(weatherData.daily.weather_code[dailyIdx]) : (STATE_LABELS[eff.state]||'').split(' ')[0];
     }
     iconEl.textContent = iconChar;
     const tempEl = document.createElement('div'); tempEl.className = 'temp';
-    tempEl.textContent = (eff.tMax !== undefined && eff.tMax !== null) ? Math.round(eff.tMax) + '°/' + Math.round(eff.tMin) + '°' : (eff.state === 'unknown' ? 'טרם זמין' : '—');
+    tempEl.textContent = day.completed ? 'בוצע' : ((eff.tMax !== undefined && eff.tMax !== null) ? Math.round(eff.tMax) + '°/' + Math.round(eff.tMin) + '°' : (eff.state === 'unknown' ? 'טרם זמין' : '—'));
     const confEl = document.createElement('div'); confEl.className = 'conf';
-    confEl.textContent = eff.manual ? '✋ ידני' : (eff.confidence ? confidenceLabel(eff.confidence) : '');
+    confEl.textContent = day.completed ? 'לפי ביצוע בפועל' : (eff.manual ? '✋ ידני' : (eff.confidence ? confidenceLabel(eff.confidence) : ''));
 
     btn.append(dEl, dateEl, iconEl, tempEl, confEl);
     el.appendChild(btn);
@@ -1011,7 +1033,7 @@ function scheduleListEl(items){
   items.forEach(it => {
     const li = document.createElement('li');
     const timeSpan = document.createElement('span'); timeSpan.className = 'time';
-    timeSpan.textContent = it.end ? (it.start + '–' + it.end) : it.start;
+    timeSpan.textContent = it.timeLabel || (it.end ? (it.start + '–' + it.end) : it.start);
     const textSpan = document.createElement('span');
     const icon = it.badge ? ((STATE_LABELS[it.badge] || '❓').split(' ')[0] + ' ') : '';
     textSpan.innerHTML = icon + '<b>' + escapeHtml(it.label) + ':</b> ' + escapeHtml(it.text);
@@ -1028,7 +1050,7 @@ function renderDays(){
 
   days.forEach((day, i) => {
     const card = document.createElement('div');
-    card.className = 'daycard' + (day.date === todayISO ? ' is-today' : '');
+    card.className = 'daycard' + (day.date === todayISO ? ' is-today' : '') + (day.completed ? ' is-completed' : '');
     card.id = 'daycard-' + i;
     card.style.display = (i === state.activeDay) ? '' : 'none';
 
@@ -1036,10 +1058,15 @@ function renderDays(){
     const charEl = document.createElement('div'); charEl.className = 'char'; charEl.textContent = day.character;
     const h2 = document.createElement('h2'); h2.textContent = day.dateLabel + ' — ' + day.title;
     top.append(charEl, h2);
+    if(day.completed){
+      const done = document.createElement('div'); done.className = 'completed-pill'; done.textContent = '✅ בוצע בפועל';
+      top.appendChild(done);
+    }
 
     const eff = effectiveState(day);
     const wbox = document.createElement('div'); wbox.className = 'weatherbox';
     const wrow = document.createElement('div'); wrow.className = 'wrow';
+    const s0 = document.createElement('span'); s0.className = 'wchip'; s0.textContent = 'מיקום התחזית: ' + weatherLocationName(day);
     const s1 = document.createElement('span'); s1.className = 'wchip'; s1.textContent = 'מצב כללי ליום: ' + (STATE_LABELS[eff.state] || 'לא ידוע');
     const s2 = document.createElement('span'); s2.className = 'wchip';
     s2.textContent = (eff.tMax !== undefined && eff.tMax !== null) ? ('טמפ׳: ' + Math.round(eff.tMin) + '°–' + Math.round(eff.tMax) + '°C') : 'טמפ׳: אין נתון';
@@ -1049,12 +1076,12 @@ function renderDays(){
     s4.textContent = (eff.gust !== undefined) ? ('משבי רוח: עד ' + Math.round(eff.gust) + ' קמ״ש') : '';
     const s5 = document.createElement('span'); s5.className = 'wchip';
     s5.textContent = eff.manual ? '✋ נבחר ידנית' : (eff.confidence ? confidenceLabel(eff.confidence) : '');
-    [s1,s2,s3,s4,s5].forEach(s => { if(s.textContent) wrow.appendChild(s); });
+    [s0,s1,s2,s3,s4,s5].forEach(s => { if(s.textContent) wrow.appendChild(s); });
     wbox.appendChild(wrow);
     const rec = document.createElement('div'); rec.className = 'rec'; rec.textContent = recommendationText(eff.state);
     wbox.appendChild(rec);
     wbox.appendChild(hourlyForecastEl(day));
-    top.appendChild(wbox);
+    if(!day.completed) top.appendChild(wbox);
 
     const toggleRow = document.createElement('div'); toggleRow.className = 'toggle-row';
     const modes = [['auto','אוטומטי לפי התחזית'], ['clear','☀️ בהיר'], ['mixed','⛅ מעורב'], ['rain','🌧️ גשם'], ['wind','💨 רוח'], ['storm','⛈️ סערה']];
@@ -1067,8 +1094,8 @@ function renderDays(){
       b.addEventListener('click', () => setManualWeather(day.id, val));
       toggleRow.appendChild(b);
     });
-    top.appendChild(toggleRow);
-    if(eff.manual){
+    if(!day.completed) top.appendChild(toggleRow);
+    if(!day.completed && eff.manual){
       const flag = document.createElement('div'); flag.className = 'manual-flag';
       flag.textContent = 'מצב ידני פעיל לכל חלונות היום — לא עוקב אחרי התחזית האוטומטית עד שתלחצו \"אוטומטי לפי התחזית\".';
       top.appendChild(flag);
@@ -1120,6 +1147,21 @@ function renderWhatNow(){
     const p = document.createElement('div'); p.className = 'muted';
     p.textContent = 'הכלי הזה יציג כאן את הפעילות הנוכחית בזמן אמת במהלך הטיול (18–23.8.2026).';
     body.appendChild(p);
+    return;
+  }
+  if(day.completed){
+    const row = document.createElement('div'); row.className = 'row';
+    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = 'בוצע';
+    const txt = document.createElement('span'); txt.textContent = 'היום הושלם: מזחלות ההרים, שביל צמרות העצים וממלכת היער.';
+    row.append(tag, txt); body.appendChild(row);
+    const dayIndex = days.findIndex(d => d.date === todayISO);
+    const tomorrow = days[dayIndex + 1];
+    if(tomorrow){
+      const nextRow = document.createElement('div'); nextRow.className = 'row';
+      const nextTag = document.createElement('span'); nextTag.className = 'tag next'; nextTag.textContent = 'מחר';
+      const nextTxt = document.createElement('span'); nextTxt.textContent = tomorrow.title + ' — יציאה מתוכננת ב־' + tomorrow.fixed[0].start + '.';
+      nextRow.append(nextTag, nextTxt); body.appendChild(nextRow);
+    }
     return;
   }
   const items = buildDaySchedule(day);
