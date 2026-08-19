@@ -1,7 +1,7 @@
 // Service worker for "מסלול דינמי - ליפנו ודרום צ'כיה".
 // Online visits always request the latest page. The cached page is used only
 // when the network is unavailable.
-const CACHE_VERSION = 'lipno-trip-v4';
+const CACHE_VERSION = 'lipno-trip-v5-20260819';
 const OFFLINE_PAGE = './index.html';
 const STATIC_ASSETS = [
   './manifest.webmanifest',
